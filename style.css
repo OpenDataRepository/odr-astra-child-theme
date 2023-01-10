@@ -1,0 +1,129 @@
+/**
+Theme Name: ODR Astra Child Theme
+Author: RRUFF Project
+Author URI: https://rruff.info
+Description: A custom theme for ODR-based systems running the Astra parent them.  Includes custom page templates that complete integration with the ODR\'s Data Publisher.
+Version: 1.0.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: odr-astra-child-theme
+Template: astra
+*/
+
+h3.ui-accordion-header,
+h3.ui-accordion-header a:active,
+h3.ui-accordion-header a:visited,
+h3.ui-accordion-header a:hover,
+h3.ui-accordion-header a {
+    background-color: #52AB75 !important;
+}
+
+
+
+/* Main Menu ODR */
+.ODRMenuWrapper,
+.ODRMenuWrapper ul,
+#ODRMainMenu {
+    /* background-image: none !important; */
+    /* background-color: #FFFFFF !important; */
+    background: transparent !important;
+}
+
+
+
+#ODRMainMenu .pure-menu-heading,
+#ODRMainMenu .pure-menu-link {
+    color: #1C81D0 !important; 
+}
+
+.ODRSearchHidden {
+    /* position: absolute; */
+    top: 148px !important;
+    /* right: 96vw; */
+}
+.ODRSearchHidden > .ODRThemeElement {
+    position: sticky !important;
+    top: 148px !important;
+}
+
+
+/* Buttons */
+.pure-skin-odr .pure-button {
+    border: 2px solid #52AB75 !important;
+    border-radius: 4px;
+    background: white none;
+    color: #1c81d0;
+}
+
+.pure-skin-odr .pure-button-primary {
+    border: 2px solid #52AB75 !important;
+    border-radius: 4px;
+    background: #1c81d0 none;
+    color: white;
+}
+
+
+.pure-skin-odr .pure-button-primary,
+.pure-skin-odr .pure-button-selected,
+.pure-skin-odr a.pure-button-primary,
+.pure-skin-odr a.pure-button-selected {
+    background-color: #52AB75 !important;
+    color: #0e275d;
+}
+
+.pure-skin-odr .pure-button {
+    color: #737378; /* rgba not supported (IE 8) */
+    border: none rgba(0, 0, 0, 0); /*IE9 + everything else*/
+    background-color: #e5e5e6;
+}
+
+/* END  Buttons */
+
+/* Field Headers */
+.ODRFileDataField,
+.ODRFileDataField_header {
+   background-color: #52AB75 !important;
+}
+
+
+/* Pagination Header */
+.ODRPaginationLabel {
+    color: #52AB75 !important;
+}
+
+#pagination_header {
+    top: 0;
+    z-index: 990;
+    background: rgb(244, 246, 244) !important;
+    -webkit-box-shadow: none !important;
+    -moz-box-shadow: none !important;
+    box-shadow: none !important;
+    /* -webkit-box-shadow: 0 8px 6px -6px rgba(0,0,0,0.1);
+    -moz-box-shadow: 0 8px 6px -6px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 6px -6px rgba(0,0,0,0.1); */
+}
+/* END Pagination Header */
+
+
+/* Footer */
+
+.pure-skin-odr .pure-menu.pure-menu-open,
+#toolbar {
+    background-color: transparent !important;
+    color: white;
+}
+
+/* END Footer */
+ 
+/* jQuery UI Fixes */
+.ui-state-active,
+.ui-widget-content .ui-state-active,
+.ui-widget-header .ui-state-active,
+a.ui-button:active,
+.ui-button:active,
+.ui-button.ui-state-active:hover {
+    border: none !important; 
+    background: #ffffff url("images/ui-bg_glass_65_ffffff_1x400.png") 50% 50% repeat-x;
+    font-weight: normal;
+    color: #212121;
+}
