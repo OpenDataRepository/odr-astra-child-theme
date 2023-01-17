@@ -24,10 +24,12 @@ use Symfony\Component\HttpFoundation\Request;
 
 // This check prevents access to debug front controllers that are deployed by accident to production servers.
 // Feel free to remove this, extend it, or make something more sophisticated.
+/*
 if (!in_array(@$_SERVER['REMOTE_ADDR'], array(
 	'216.220.244.174',
 	'216.220.244.127',
     '216.220.243.238',
+	'216.220.243.164',
 	'172.58.217.90',
         '127.0.0.1',
         '::1',
@@ -37,6 +39,17 @@ if (!in_array(@$_SERVER['REMOTE_ADDR'], array(
     print "-- " . $_SERVER['REMOTE_ADDR'] . " --<br />";
     exit('You are not allowed to access this file. Check '.basename(__FILE__).' for more information.');
 }
+*/
+
+/**
+ * Get Wordpress user Email and set for auto-login
+ */
+global $current_user;
+get_currentuserinfo();
+$odr_wordpress_user = $current_user->user_email;
+putenv("WORDPRESS_USER=$odr_wordpress_user");
+
+// print $odr_wordpress_user; exit();
 
 /**
  * @var Composer\Autoload\ClassLoader

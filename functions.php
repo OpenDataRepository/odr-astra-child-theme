@@ -32,7 +32,7 @@ function ODR_include_styles() {
     $base_path = "/odr_rruff/";
     // <!-- PURE CSS -->
     wp_enqueue_style('pure-css', get_site_url() . $base_path . 'css/external/pure-min.css');
-    wp_enqueue_style('pure-responsove', get_site_url() . $base_path . 'css/external/pure-grids-responsive-min.css');
+    wp_enqueue_style('pure-responsive', get_site_url() . $base_path . 'css/external/pure-grids-responsive-min.css');
 
     // <!-- Symfony Stylesheets -->
     wp_enqueue_style('', get_site_url() . $base_path . 'css/odr_wordpress.1.8.0.css');
