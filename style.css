@@ -33,7 +33,7 @@ h3.ui-accordion-header a {
 
 #ODRMainMenu .pure-menu-heading,
 #ODRMainMenu .pure-menu-link {
-    color: #1C81D0 !important; 
+    color: rgba(58, 161, 107, 1.00) !important; 
 }
 
 .ODRSearchHidden {
