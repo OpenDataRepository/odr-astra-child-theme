@@ -7,15 +7,63 @@
  *
  */
 
-ob_start();
+$wp_header = "";
+$wp_footer = "";
+/*
+ * Do not build header and footer for images and static graphs.
+ * The output does not use these values.
+ */
+if(!preg_match("/graph\/static/", $_SERVER['REQUEST_URI'])) {
+
+  // Begin Header Object
+  ob_start();
+
+  $output = '';
+  // Run the search plugin here for search page
+  /* Search Shortcode
+  [odr-rruff-search-display datatype_id = "738"
+      general_search = "gen"
+      chemistry_incl = "7055"
+    mineral_name = "7052"
+      sample_id = "7069"
+      redirect_url = "/odr/rruff_sample#/odr/search/display/2010"]
+  */
+
+  $content = '[odr-rruff-search-display datatype_id = "738"
+      general_search = "gen"
+      chemistry_incl = "7055"
+      mineral_name = "7052"
+      sample_id = "7069"
+      redirect_url = "/odr/rruff_sample#/odr/search/display/2010"]';
+  // Probably missing some CSS, etc.
+  $output .= do_shortcode( $content, false );
+
   get_header();
   $wp_header = ob_get_contents();
-ob_end_clean();
+  // Must inject every time because hash (#) can't be read by server
+  // Hidden by default until detected by admin
+  if(preg_match("/odr\/rruff_sample/", $_SERVER['REQUEST_URI'])) {
+    $wp_header .= '<div id="odr_rruff_search_dialog" style="display: none;">';
+    $wp_header .= $output;
+    $wp_header .= '</div>';
+  }
 
-ob_start();
-  get_footer();
-  $wp_footer = ob_get_contents();
-ob_end_clean();
+  // End Header Object
+  ob_end_clean();
+
+  ob_start();
+    get_footer();
+    $wp_footer_content = ob_get_contents();
+    $wp_footer = '';
+    // if(preg_match("/odr\/rruff_sample/", $_SERVER['REQUEST_URI'])) {
+      // $wp_footer .= $output;
+    // }
+    $wp_footer .= $wp_footer_content;
+  ob_end_clean();
+}
+
+// Replace title in header
+// $wp_header = preg_replace('/<title>[.*]?=(<\/title>)/','<title>TEST</title>'); // . wp_title('&raquo;',true) . '</title>');
 
 umask(0000);
 
@@ -50,6 +98,11 @@ $odr_wordpress_user = $current_user->user_email;
 putenv("WORDPRESS_USER=$odr_wordpress_user");
 
 // print $odr_wordpress_user; exit();
+//
+global $wp_query;
+status_header( 200 );
+$wp_query->is_page = true;
+$wp_query->is_404=false;
 
 /**
  * @var Composer\Autoload\ClassLoader
@@ -63,9 +116,9 @@ $request = Request::createFromGlobals();
 // Fix the AST (astra) container
 $request->wordpress_header = preg_replace('/ast-container">/', 'ast-container"></div><div>', $wp_header);
 $request->wordpress_footer = $wp_footer;
+
+// Kernel process request
 $response = $kernel->handle($request);
 $response->send();
 $kernel->terminate($request, $response);
 
-
-?>

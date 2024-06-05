@@ -11,7 +11,7 @@
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.0' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.5' );
 
 /**
  * Enqueue styles
@@ -24,6 +24,55 @@ add_action( 'wp_enqueue_scripts', 'child_enqueue_styles', 15 );
 add_action( 'wp_enqueue_scripts', 'ODR_include_scripts', 95 );
 add_action( 'wp_enqueue_scripts', 'ODR_include_styles', 150 );
 
+
+/**
+ * Sets the redirect value for login redirection
+ */
+add_action("um_after_login_fields", function(){
+    if( isset( $_SERVER['HTTP_REFERER'] ) && !isset( $_REQUEST['redirect_to'] ) ){
+        // Sanitize url (remove http(s):// and domain
+        $url = preg_replace("/^[^:]+:\/\/[^/?#]+/", '', $_SERVER['HTTP_REFERER']);
+        echo "<input type='hidden' name='redirect_to' value='".( $url )."'>";
+    }
+});
+/*
+ * Always redirect users to homepage after login
+ */
+// function custom_login_redirect() {
+    // return '/';
+// }
+// add_filter('login_redirect', 'custom_login_redirect');
+
+
+
+
+/*
+ * Before the 404 header is sent, this function determines
+ * if the data is coming from ODR.  If so, no 404 header is
+ * sent.
+ */
+add_action( 'pre_handle_404', function() {
+    global $wp;
+    $request = explode( '/', $wp->request );
+    if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+        return FALSE;
+    }
+
+} );
+
+
+/*
+ * Always redirect users to homepage after logout
+ */
+add_action('wp_logout','auto_redirect_after_logout');
+
+function auto_redirect_after_logout(){
+    if (isset($_COOKIE['PHPSESSID'])) {
+        setcookie('PHPSESSID', time()-3600);
+    }
+    wp_safe_redirect( '/' );
+    exit;
+}
 
 function ODR_include_styles() {
   global $wp;
@@ -128,12 +177,20 @@ function ODR_include_scripts() {
     // <!-- Openlayers -->
     wp_enqueue_script('openlayers', get_site_url() . $base_path . 'js/mylibs/ol.js');
     // <!-- Render Plugins -->
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_cellparam_plugin.js"></script>
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_chemistry_plugin.js"></script>
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_graph_plugin.js"></script>
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_gcms_plugin.js"></script>
+
+    wp_enqueue_script('odr_cellparam', get_site_url() . $base_path . '/js/mylibs/odr_cellparam_plugin.js');
     wp_enqueue_script('odr_chemistry', get_site_url() . $base_path . 'js/mylibs/odr_chemistry_plugin.js');
     wp_enqueue_script('odr_graph', get_site_url() . $base_path . 'js/mylibs/odr_graph_plugin.js');
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_gcms_plugin.js"></script>
     wp_enqueue_script('odr_gcms', get_site_url() . $base_path . 'js/mylibs/odr_gcms_plugin.js');
+    // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_filter_graph_plugin.js"></script>
+    wp_enqueue_script('odr_filter_graph', get_site_url() . $base_path . 'js/mylibs/odr_filter_graph_plugin.js');
   }
 }
-
 
 add_action('wp_head', 'add_ODR_headers');
 function add_ODR_headers(){
@@ -152,10 +209,6 @@ function add_ODR_headers(){
         }
     }
 }
-
-
-
-
 
 // Load custom template for web requests going to "/account" or "/account/<..>/..."
 add_filter( 'template_include', 'odr_load_system_template' );
@@ -176,7 +229,8 @@ function odr_load_system_template( $original_template ) {
 add_filter('redirect_canonical', 'odr_disable_404_redirection_for_odr_system');
 function odr_disable_404_redirection_for_odr_system( $redirect_url ) {
     global $wp;
-    if ( strpos( $wp->request, "odr/" ) !== false ) {
+    $request = explode( '/', $wp->request );
+    if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
         return false;
     }
     return $redirect_url;
@@ -187,3 +241,10 @@ add_action( 'init', 'odr_rewrites_init' );
 function odr_rewrites_init(){
     add_rewrite_rule( '^odr/(.+)', 'index.php', 'top' );
 }
+
+/*
+ * Add user to ODR after user add in Wordpress
+ */
+add_action( 'user_register', function ( $user_id ) {
+    // TODO Add new action here
+} );
