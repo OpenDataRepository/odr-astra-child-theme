@@ -35,6 +35,7 @@ if(!preg_match("/graph\/static/", $_SERVER['REQUEST_URI'])) {
       mineral_name = "7052"
       sample_id = "7069"
       redirect_url = "/odr/rruff_sample#/odr/search/display/2010"]';
+
   // Probably missing some CSS, etc.
   $output .= do_shortcode( $content, false );
 
