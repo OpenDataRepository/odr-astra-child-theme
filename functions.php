@@ -222,16 +222,8 @@ function odr_load_system_template( $original_template ) {
   $request = explode( '/', $wp->request );
   if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
       // {"dt_id":"738","7069":"r040032"}
-      $baseurl = '/odr/rruff_sample#/odr/search/display/2229/';
-      $search_array = [];
-      $search_array['dt_id'] = 738;
-      $search_array['7069'] = $matches[0];
-
-      $search_encoded = base64_encode(json_encode($search_array));
-
-      $search_encoded = preg_replace("/\=+^/", '', $search_encoded);
-
-      wp_redirect($baseurl . $search_encoded);
+      $baseurl = '/odr/rruff_sample/' . $matches[0];
+      wp_redirect($baseurl);
   }
   if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
       return plugin_dir_path( __FILE__ ) . 'page-odr.php';
