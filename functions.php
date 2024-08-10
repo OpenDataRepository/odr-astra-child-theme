@@ -11,7 +11,7 @@
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.5' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.8' );
 
 /**
  * Enqueue styles
@@ -212,9 +212,27 @@ function add_ODR_headers(){
 
 // Load custom template for web requests going to "/account" or "/account/<..>/..."
 add_filter( 'template_include', 'odr_load_system_template' );
+/**
+ * This seems to run on every page
+ * @param $original_template
+ * @return void
+ */
 function odr_load_system_template( $original_template ) {
   global $wp;
   $request = explode( '/', $wp->request );
+  if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
+      // {"dt_id":"738","7069":"r040032"}
+      $baseurl = '/odr/rruff_sample#/odr/search/display/2229/';
+      $search_array = [];
+      $search_array['dt_id'] = 738;
+      $search_array['7069'] = $matches[0];
+
+      $search_encoded = base64_encode(json_encode($search_array));
+
+      $search_encoded = preg_replace("/\=+^/", '', $search_encoded);
+
+      wp_redirect($baseurl . $search_encoded);
+  }
   if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
       return plugin_dir_path( __FILE__ ) . 'page-odr.php';
   }
@@ -227,6 +245,12 @@ function odr_load_system_template( $original_template ) {
  *
  */
 add_filter('redirect_canonical', 'odr_disable_404_redirection_for_odr_system');
+
+/**
+ * Only runs on 404/NOT FOUND
+ * @param $redirect_url
+ * @return void
+ */
 function odr_disable_404_redirection_for_odr_system( $redirect_url ) {
     global $wp;
     $request = explode( '/', $wp->request );
