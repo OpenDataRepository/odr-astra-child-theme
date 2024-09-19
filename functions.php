@@ -240,11 +240,15 @@ function odr_load_system_template( $original_template ) {
   }
   else if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
       // {"dt_id":"738","7069":"r040032"}
-      $baseurl = '/odr/rruff_sample/' . $matches[0];
+      $search_params = [];
+      $search_params['dt_id'] = 738;
+      $search_params['7069'] = $request[count($request)-1];
+      $search_query = base64_encode(json_encode($search_params));
+      $search_query = preg_replace('/\=+$/','',$search_query);
+      $baseurl = '/odr/rruff_sample/' . $search_query;
       wp_redirect($baseurl);
   }
   else if (is_mineral_name($request[count($request)-1])) {
-      $baseurl = '/odr/rruff_sample/' . $request[count($request)-1];
       if(preg_match('/ima\//',$wp->request)) {
           // Build Base64 URL for IMA
           // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
@@ -254,14 +258,19 @@ function odr_load_system_template( $original_template ) {
           $search_params['7062'] = "-1094,-1104";
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
-          // /odr/ima#/odr/search/display/2004/eyJkdF9pZCI6IjczNiIsIjcwNTIiOiJhY3Rpbm9saXRlIiwiNzA2MiI6Ii0xMDk0LC0xMTA0In0
           $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+      }
+      else {
+          // {"dt_id":"738","gen":"Tetradymite","7052":"Tetradymite"}
+          $search_params = [];
+          $search_params['dt_id'] = 738;
+          $search_params['7052'] = $request[count($request)-1];
+          $search_query = base64_encode(json_encode($search_params));
+          $search_query = preg_replace('/\=+$/','',$search_query);
+          $baseurl = '/odr/rruff_sample/' . $search_query;
       }
       wp_redirect($baseurl);
   }
-  // else if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
-      // return plugin_dir_path( __FILE__ ) . 'page-odr.php';
-  // }
   return $original_template;
 }
 
