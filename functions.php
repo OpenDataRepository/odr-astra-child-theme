@@ -210,6 +210,21 @@ function add_ODR_headers(){
     }
 }
 
+/**
+ * Determines if the URL request is for a known mineral
+ * @param $url_stub
+ * @return bool
+ */
+function is_mineral_name($url_stub) {
+    include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names.php');
+    foreach($mineral_names_lowercase as $mineral_name) {
+        if(trim(strtolower($url_stub)) === $mineral_name) {
+           return true;
+        }
+    }
+    return false;
+}
+
 // Load custom template for web requests going to "/account" or "/account/<..>/..."
 add_filter( 'template_include', 'odr_load_system_template' );
 /**
@@ -220,14 +235,24 @@ add_filter( 'template_include', 'odr_load_system_template' );
 function odr_load_system_template( $original_template ) {
   global $wp;
   $request = explode( '/', $wp->request );
-  if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
+  if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+        return plugin_dir_path( __FILE__ ) . 'page-odr.php';
+  }
+  else if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
       // {"dt_id":"738","7069":"r040032"}
       $baseurl = '/odr/rruff_sample/' . $matches[0];
       wp_redirect($baseurl);
   }
-  if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
-      return plugin_dir_path( __FILE__ ) . 'page-odr.php';
+  else if (is_mineral_name($request[count($request)-1])) {
+      $baseurl = '/odr/rruff_sample/' . $request[count($request)-1];
+      if(preg_match('/ima\//',$wp->request)) {
+          $baseurl = '/odr/ima_mineral_list/' . $request[count($request)-1];
+      }
+      wp_redirect($baseurl);
   }
+  // else if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+      // return plugin_dir_path( __FILE__ ) . 'page-odr.php';
+  // }
   return $original_template;
 }
 
