@@ -246,7 +246,16 @@ function odr_load_system_template( $original_template ) {
   else if (is_mineral_name($request[count($request)-1])) {
       $baseurl = '/odr/rruff_sample/' . $request[count($request)-1];
       if(preg_match('/ima\//',$wp->request)) {
-          $baseurl = '/odr/ima/' . $request[count($request)-1];
+          // Build Base64 URL for IMA
+          // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
+          $search_params = [];
+          $search_params['dt_id'] = 736;
+          $search_params['7052'] = $request[count($request)-1];
+          $search_params['7062'] = "-1094,-1104";
+          $search_query = base64_encode(json_encode($search_params));
+          $search_query = preg_replace('/\=+$/','',$search_query);
+          // /odr/ima#/odr/search/display/2004/eyJkdF9pZCI6IjczNiIsIjcwNTIiOiJhY3Rpbm9saXRlIiwiNzA2MiI6Ii0xMDk0LC0xMTA0In0
+          $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
       }
       wp_redirect($baseurl);
   }
