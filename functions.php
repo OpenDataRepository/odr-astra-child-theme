@@ -246,7 +246,7 @@ function odr_load_system_template( $original_template ) {
   else if (is_mineral_name($request[count($request)-1])) {
       $baseurl = '/odr/rruff_sample/' . $request[count($request)-1];
       if(preg_match('/ima\//',$wp->request)) {
-          $baseurl = '/odr/ima_mineral_list/' . $request[count($request)-1];
+          $baseurl = '/odr/ima/' . $request[count($request)-1];
       }
       wp_redirect($baseurl);
   }
