@@ -245,7 +245,7 @@ function odr_load_system_template( $original_template ) {
       $search_params['7069'] = $request[count($request)-1];
       $search_query = base64_encode(json_encode($search_params));
       $search_query = preg_replace('/\=+$/','',$search_query);
-      $baseurl = '/odr/rruff_sample/' . $search_query;
+      $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
       wp_redirect($baseurl);
   }
   else if (is_mineral_name($request[count($request)-1])) {
@@ -267,7 +267,7 @@ function odr_load_system_template( $original_template ) {
           $search_params['7052'] = $request[count($request)-1];
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
-          $baseurl = '/odr/rruff_sample/' . $search_query;
+          $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
       }
       wp_redirect($baseurl);
   }
