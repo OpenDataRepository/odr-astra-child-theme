@@ -248,6 +248,19 @@ function odr_load_system_template( $original_template ) {
       $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
       wp_redirect($baseurl);
   }
+  else if (
+      count($_GET) > 0
+      && is_mineral_name(array_keys($_GET)[0])
+  ) {
+      $search_params = [];
+      $search_params['dt_id'] = 736;
+      $search_params['7052'] = array_keys($_GET)[0];
+      $search_params['7062'] = "-1094,-1104";
+      $search_query = base64_encode(json_encode($search_params));
+      $search_query = preg_replace('/\=+$/','',$search_query);
+      $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+      wp_redirect($baseurl);
+  }
   else if (is_mineral_name($request[count($request)-1])) {
       if(preg_match('/ima\//',$wp->request)) {
           // Build Base64 URL for IMA
