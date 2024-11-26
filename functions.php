@@ -222,8 +222,8 @@ function add_ODR_headers(){
 function is_mineral_name($url_stub) {
     include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names.php');
     foreach($mineral_names_lowercase as $mineral_name) {
-        // print trim(strtolower($url_stub)) . ' -- ' . $mineral_name . '<br />';
-        if(trim(strtolower($url_stub)) === $mineral_name) {
+        // print trim(urldecode($url_stub)) . ' -- ' . $mineral_name . '<br />';
+        if(trim(strtolower(urldecode($url_stub))) === $mineral_name) {
            return true;
         }
     }
@@ -273,7 +273,7 @@ function odr_load_system_template( $original_template ) {
           // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
           $search_params = [];
           $search_params['dt_id'] = 736;
-          $search_params['7052'] = $request[count($request)-1];
+          $search_params['7052'] = urldecode($request[count($request)-1]);
           $search_params['7062'] = "-1094,-1104";
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
@@ -283,7 +283,7 @@ function odr_load_system_template( $original_template ) {
           // {"dt_id":"738","gen":"Tetradymite","7052":"Tetradymite"}
           $search_params = [];
           $search_params['dt_id'] = 738;
-          $search_params['7052'] = $request[count($request)-1];
+          $search_params['7052'] = urldecode($request[count($request)-1]);
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
           $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
