@@ -54,10 +54,14 @@ add_action("um_after_login_fields", function(){
 add_action( 'pre_handle_404', function() {
     global $wp;
     $request = explode( '/', $wp->request );
-    if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+    if (
+        is_page( 'odr' )
+        || preg_match("/odr/", current( $request ))
+        || preg_match("/ima/", current( $request ))
+    ) {
+        $wp->odr_original_url = $wp->request;
         return FALSE;
     }
-
 } );
 
 
@@ -218,6 +222,7 @@ function add_ODR_headers(){
 function is_mineral_name($url_stub) {
     include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names.php');
     foreach($mineral_names_lowercase as $mineral_name) {
+        // print trim(strtolower($url_stub)) . ' -- ' . $mineral_name . '<br />';
         if(trim(strtolower($url_stub)) === $mineral_name) {
            return true;
         }
@@ -225,8 +230,9 @@ function is_mineral_name($url_stub) {
     return false;
 }
 
-// Load custom template for web requests going to "/account" or "/account/<..>/..."
+// Load custom template for web requests going to "/account" or "/account/<..>/...
 add_filter( 'template_include', 'odr_load_system_template' );
+
 /**
  * This seems to run on every page
  * @param $original_template
@@ -302,7 +308,11 @@ add_filter('redirect_canonical', 'odr_disable_404_redirection_for_odr_system');
 function odr_disable_404_redirection_for_odr_system( $redirect_url ) {
     global $wp;
     $request = explode( '/', $wp->request );
-    if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+    if (
+        is_page( 'odr' )
+        || preg_match("/odr/", current( $request ))
+        || preg_match("/ima/", current( $request ))
+    ) {
         return false;
     }
     return $redirect_url;
