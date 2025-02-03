@@ -221,6 +221,7 @@ function add_ODR_headers(){
  */
 function is_mineral_name($url_stub) {
     include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names.php');
+    include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names_update.php');
     foreach($mineral_names_lowercase as $mineral_name) {
         // print trim(urldecode($url_stub)) . ' -- ' . $mineral_name . '<br />';
         if(trim(strtolower(urldecode($url_stub))) === $mineral_name) {
