@@ -11,7 +11,7 @@
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.8' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.9' );
 
 /**
  * Enqueue styles
@@ -43,22 +43,19 @@ add_action("um_after_login_fields", function(){
 // }
 // add_filter('login_redirect', 'custom_login_redirect');
 
-
-
-
 /*
  * Before the 404 header is sent, this function determines
  * if the data is coming from ODR.  If so, no 404 header is
  * sent.
  */
 add_action( 'pre_handle_404', function() {
-    global $wp;
     $request = explode( '/', $wp->request );
     if (
         is_page( 'odr' )
         || preg_match("/odr/", current( $request ))
         || preg_match("/ima/", current( $request ))
     ) {
+        // print "TRIGGER"; exit();
         $wp->odr_original_url = $wp->request;
         return FALSE;
     }
@@ -201,9 +198,10 @@ function add_ODR_headers(){
     global $post;
     global $wp;
     $request = explode( '/', $wp->request );
-    if ( 
+    if (
       ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) )
-      && !empty($post)) {
+      && !empty($post)
+    ) {
         // get custom field for 'head'
         $headHTML = get_post_meta($post->ID, 'head', true);
         if(!empty($headHTML)){
@@ -223,8 +221,7 @@ function is_mineral_name($url_stub) {
     include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names.php');
     include_once(__DIR__.'/../../data-publisher/web/uploads/IMA/mineral_names_update.php');
     foreach($mineral_names_lowercase as $mineral_name) {
-        // print trim(urldecode($url_stub)) . ' -- ' . $mineral_name . '<br />';
-        if(trim(strtolower(urldecode($url_stub))) === $mineral_name) {
+        if(trim(mb_strtolower(urldecode($url_stub))) === $mineral_name) {
            return true;
         }
     }
@@ -246,6 +243,7 @@ function odr_load_system_template( $original_template ) {
         return plugin_dir_path( __FILE__ ) . 'page-odr.php';
   }
   else if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
+      // Matches RRUFF IDs
       // {"dt_id":"738","7069":"r040032"}
       $search_params = [];
       $search_params['dt_id'] = 738;
@@ -255,21 +253,28 @@ function odr_load_system_template( $original_template ) {
       $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
       wp_redirect($baseurl);
   }
-  else if (
-      count($_GET) > 0
-      && is_mineral_name(array_keys($_GET)[0])
-  ) {
+  else if (count($request) == 1 && is_mineral_name($request[count($request)-1])) {
+      // if directly match mineral name -> RRUFF
+      // This should be a bare stub
       $search_params = [];
-      $search_params['dt_id'] = 736;
-      $search_params['7052'] = array_keys($_GET)[0];
-      $search_params['7062'] = "-1094,-1104";
+      $search_params['dt_id'] = 738;
+      $search_params['7052'] = urldecode($request[count($request)-1]);
       $search_query = base64_encode(json_encode($search_params));
       $search_query = preg_replace('/\=+$/','',$search_query);
-      $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+      $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
       wp_redirect($baseurl);
   }
   else if (is_mineral_name($request[count($request)-1])) {
-      if(preg_match('/ima\//',$wp->request)) {
+      // Else match /stub/mineral_name
+      // Checking last parameter - is mineral
+      // Matching IMA List
+      if(preg_match('/^ima-mineral-list\//i',$wp->request)) {
+          $parts = preg_split('/\//', $wp->request);
+          $baseurl = '/' . $parts[0] . '/?' . $parts[1];
+          wp_redirect($baseurl);
+      }
+      // Matching IMA DATA
+      else if(preg_match('/^ima\//i',$wp->request)) {
           // Build Base64 URL for IMA
           // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
           $search_params = [];
@@ -279,17 +284,24 @@ function odr_load_system_template( $original_template ) {
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
           $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+          wp_redirect($baseurl);
       }
-      else {
-          // {"dt_id":"738","gen":"Tetradymite","7052":"Tetradymite"}
+      else if(preg_match('/^amcsd\//i',$wp->request)) {
+          // Build Base64 URL for AMCSD
+          // odr/amcsd#/odr/search/display/2187/
+          // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
           $search_params = [];
-          $search_params['dt_id'] = 738;
-          $search_params['7052'] = urldecode($request[count($request)-1]);
+          $search_params['dt_id'] = 771;
+          $search_params['7197'] = urldecode($request[count($request)-1]);
           $search_query = base64_encode(json_encode($search_params));
           $search_query = preg_replace('/\=+$/','',$search_query);
-          $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
+          $baseurl = '/odr/amcsd#/odr/search/display/2187/' . $search_query;
+          wp_redirect($baseurl);
       }
-      wp_redirect($baseurl);
+      // Matching RRUFF Sample
+      else {
+          // {"dt_id":"738","gen":"Tetradymite","7052":"Tetradymite"}
+      }
   }
   return $original_template;
 }
