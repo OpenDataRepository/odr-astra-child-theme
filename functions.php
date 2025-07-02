@@ -98,8 +98,8 @@ add_action( 'pre_handle_404', function() {
                 && !preg_match('/^\/ima\/$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
-                && !preg_match('/^\/amcsd/$/i', $current_uri)
                 && !preg_match('/^\/amcsd$/i', $current_uri)
+                && !preg_match('/^\/amcsd\/$/i', $current_uri)
             ) {
                 // Matches RRUFF IDs
                 // {"dt_id":"738","7069":"r040032"}
