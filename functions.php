@@ -109,7 +109,7 @@ add_action( 'pre_handle_404', function() {
                 // {"dt_id":"738","7069":"r040032"}
                 $search_params = [];
                 $search_params['dt_id'] = 738;
-                $search_params['7069'] = $request[count($request) - 1];
+                $search_params['7052'] = $request[count($request) - 1];
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
