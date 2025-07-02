@@ -49,17 +49,83 @@ add_action("um_after_login_fields", function(){
  * sent.
  */
 add_action( 'pre_handle_404', function() {
-    $request = explode( '/', $wp->request );
+    $current_uri = $_SERVER[REQUEST_URI];
+    $request = explode('/', $current_uri);
+
+    switch ($current_uri) {
+        case (bool)preg_match('/^\/ima-mineral-list\/./i', $current_uri):
+            print "IMA List";exit();
+            if(!preg_match('/\/\?/', $current_uri)) {
+                $parts = preg_split('/\//', $current_uri);;
+                $baseurl = '/' . $parts[1] . '/?' . $parts[2];
+                wp_redirect($baseurl);
+            }
+            break;
+
+        case (bool)preg_match('/^\/ima\/./i', $current_uri):
+            print "IMA";exit();
+            // Build Base64 URL for IMA
+            // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
+            $search_params = [];
+            $search_params['dt_id'] = 736;
+            $search_params['7052'] = urldecode($request[count($request)-1]);
+            $search_params['7062'] = "-1094,-1104";
+            $search_query = base64_encode(json_encode($search_params));
+            $search_query = preg_replace('/\=+$/','',$search_query);
+            $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+            wp_redirect($baseurl);
+            break;
+
+        case (bool)preg_match('/^\/amcsd\/./i', $current_uri):
+            print "AMCSD";exit();
+            // Build Base64 URL for AMCSD
+            // odr/amcsd#/odr/search/display/2187/
+            // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
+            $search_params = [];
+            $search_params['dt_id'] = 771;
+            $search_params['7197'] = urldecode($request[count($request)-1]);
+            $search_query = base64_encode(json_encode($search_params));
+            $search_query = preg_replace('/\=+$/','',$search_query);
+            $baseurl = '/odr/amcsd#/odr/search/display/2187/' . $search_query;
+            wp_redirect($baseurl);
+            break;
+
+        case (bool)preg_match('/^\/./i', $current_uri):
+            if (
+                !preg_match('/^\/odr\//', $current_uri)
+                && !preg_match('/^\/about\/$/i', $current_uri)
+                && !preg_match('/^\/ima$/i', $current_uri)
+                && !preg_match('/^\/ima\/$/i', $current_uri)
+                && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
+                && !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
+                && !preg_match('/^\/amcsd/$/i', $current_uri)
+                && !preg_match('/^\/amcsd$/i', $current_uri)
+            ) {
+                // Matches RRUFF IDs
+                // {"dt_id":"738","7069":"r040032"}
+                $search_params = [];
+                $search_params['dt_id'] = 738;
+                $search_params['7069'] = $request[count($request) - 1];
+                $search_query = base64_encode(json_encode($search_params));
+                $search_query = preg_replace('/\=+$/', '', $search_query);
+                $baseurl = '/odr/rruff_sample#/odr/search/display/2010/' . $search_query;
+                wp_redirect($baseurl);
+            }
+            break;
+    }
+
+    $request = explode('/', $wp->request);
     if (
-        is_page( 'odr' )
-        || preg_match("/odr/", current( $request ))
-        || preg_match("/ima/", current( $request ))
+        is_page('odr')
+        || preg_match("/odr/", current($request))
+        || preg_match("/ima/", current($request))
     ) {
         // print "TRIGGER"; exit();
+        // TODO This isn't used for anything
         $wp->odr_original_url = $wp->request;
         return FALSE;
     }
-} );
+});
 
 
 /*
@@ -242,6 +308,7 @@ function odr_load_system_template( $original_template ) {
   if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
         return plugin_dir_path( __FILE__ ) . 'page-odr.php';
   }
+  /*
   else if(preg_match("/^([R|r]\d+)$/", $wp->request, $matches)) {
       // Matches RRUFF IDs
       // {"dt_id":"738","7069":"r040032"}
@@ -303,6 +370,7 @@ function odr_load_system_template( $original_template ) {
           // {"dt_id":"738","gen":"Tetradymite","7052":"Tetradymite"}
       }
   }
+    */
   return $original_template;
 }
 
