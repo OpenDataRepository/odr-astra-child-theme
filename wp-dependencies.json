@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Adminimize",
+    "host": "wordpress",
+    "slug": "adminimize/adminimize.php",
+    "uri": "https://wordpress.org/plugins/adminimize/",
+    "optional": true
+  },
+  {
+    "name": "Gmail SMTP",
+    "host": "wordpress",
+    "slug": "gmail-smtp/maine.php",
+    "uri":  "https://wordpress.org/plugins/gmail-smtp/",
+    "required": true
+  },
+  {
+    "name": "If Menu - Visibility control for menus",
+    "host": "wordpress",
+    "slug": "if-menu/if-menu.php",
+    "uri":  "https://wordpress.org/plugins/if-menu/",
+    "required": true
+  },
+  {
+    "name": "Simple Custom CSS and JS",
+    "host": "wordpress",
+    "slug": "custom-css-js/custom-css-js.php",
+    "uri":  "https://wordpress.org/plugins/custom-css-js/",
+    "required": true
+  },
+  {
+    "name": "Sky Login Redirect",
+    "host": "wordpress",
+    "slug": "sky-login-redirect/sky-login-redirect.php",
+    "uri":  "https://wordpress.org/plugins/sky-login-redirect/",
+    "required": true
+  },
+  {
+    "name": "Yoast Duplicate Post",
+    "host": "wordpress",
+    "slug": "duplicate-post/duplicate-post.php",
+    "uri":  "https://wordpress.org/plugins/duplicate-post/",
+    "optional" true
+  }
+]
