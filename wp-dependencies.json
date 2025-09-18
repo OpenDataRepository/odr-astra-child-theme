@@ -1,5 +1,33 @@
 [
   {
+    "name": "Elementor",
+    "host": "wordpress",
+    "slug": "elementor/elementor.php",
+    "uri":  "https://wordpress.org/plugins/elementor/",
+    "required": true
+  },
+  {
+    "name": "Disable Emojis",
+    "host": "wordpress",
+    "slug": "disable-emojis/disable-emojis.php",
+    "uri":  "https://wordpress.org/plugins/disable-emojis/",
+    "required": true
+  },
+  {
+    "name": "Font Awesome",
+    "host": "wordpress",
+    "slug": "font-awesome/font-awesome.php",
+    "uri":  "https://wordpress.org/plugins/font-awesome/",
+    "required": true
+  },
+  {
+    "name": "WP Forms Lite",
+    "host": "wordpress",
+    "slug": "wpforms-lite/wpforms.php",
+    "uri":  "https://wordpress.org/plugins/wpforms-lite/",
+    "required": true
+  },
+  {
     "name": "Adminimize",
     "host": "wordpress",
     "slug": "adminimize/adminimize.php",

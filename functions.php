@@ -776,6 +776,10 @@ function runODRKernel($send = false) {
 }
 
 
+/*
+ * Dependency Installer
+ * https://github.com/afragen/wp-dependency-installer
+ */
 require_once __DIR__ . '/vendor/autoload.php';
 add_action( 'plugins_loaded', static function() {
     WP_Dependency_Installer::instance( __DIR__ )->run();
