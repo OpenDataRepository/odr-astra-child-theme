@@ -1,5 +1,5 @@
-<?php 
-/* Template Name: ODR System Wrapper 
+<?php
+/* Template Name: ODR System Wrapper
  *
  * @package WordPress
  * @subpackage ODR-Astra-Child-Theme

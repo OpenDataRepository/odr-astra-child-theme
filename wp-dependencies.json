@@ -4,28 +4,28 @@
     "host": "wordpress",
     "slug": "elementor/elementor.php",
     "uri":  "https://wordpress.org/plugins/elementor/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Disable Emojis",
     "host": "wordpress",
     "slug": "disable-emojis/disable-emojis.php",
     "uri":  "https://wordpress.org/plugins/disable-emojis/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Font Awesome",
     "host": "wordpress",
     "slug": "font-awesome/font-awesome.php",
     "uri":  "https://wordpress.org/plugins/font-awesome/",
-    "required": true
+    "optional": true
   },
   {
     "name": "WP Forms Lite",
     "host": "wordpress",
     "slug": "wpforms-lite/wpforms.php",
     "uri":  "https://wordpress.org/plugins/wpforms-lite/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Adminimize",
@@ -37,36 +37,36 @@
   {
     "name": "Gmail SMTP",
     "host": "wordpress",
-    "slug": "gmail-smtp/maine.php",
+    "slug": "gmail-smtp/main.php",
     "uri":  "https://wordpress.org/plugins/gmail-smtp/",
-    "required": true
+    "optional": true
   },
   {
     "name": "If Menu - Visibility control for menus",
     "host": "wordpress",
     "slug": "if-menu/if-menu.php",
     "uri":  "https://wordpress.org/plugins/if-menu/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Simple Custom CSS and JS",
     "host": "wordpress",
     "slug": "custom-css-js/custom-css-js.php",
     "uri":  "https://wordpress.org/plugins/custom-css-js/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Sky Login Redirect",
     "host": "wordpress",
     "slug": "sky-login-redirect/sky-login-redirect.php",
     "uri":  "https://wordpress.org/plugins/sky-login-redirect/",
-    "required": true
+    "optional": true
   },
   {
     "name": "Yoast Duplicate Post",
     "host": "wordpress",
     "slug": "duplicate-post/duplicate-post.php",
     "uri":  "https://wordpress.org/plugins/duplicate-post/",
-    "optional" true
+    "optional": true
   }
 ]
