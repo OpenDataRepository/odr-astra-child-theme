@@ -265,12 +265,20 @@ function odr_rruff_404_prehandler () {
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 738;
-                $search_params['7052'] = $request[count($request) - 2];
-                $search_params['sort_by'] = [[
-                   "sort_df_id" => "7052",
-                    "sort_dir" => "asc"
-                ]];
-                // var_dump(json_encode($search_params));exit();
+                $mineral_id = strip_tags(urldecode($request[count($request)-1]));
+                if(preg_match('/^[rdx]\d+$/', $mineral_id)) {
+                    $search_params['7069'] = $mineral_id;
+                    $search_params['sort_by'] = [[
+                        "sort_df_id" => "7069",
+                        "sort_dir" => "asc"
+                    ]];
+                } else {
+                    $search_params['7052'] =  $mineral_id;
+                    $search_params['sort_by'] = [[
+                        "sort_df_id" => "7052",
+                        "sort_dir" => "asc"
+                    ]];
+                }
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;
