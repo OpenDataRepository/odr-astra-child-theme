@@ -72,6 +72,8 @@ function odr_rruff_404_prehandler () {
     switch ($current_uri) {
         // Elementor
         // https://itss.odr.io/?elementor-preview=14&ver=1758215529&preview-debug
+        // ?page_id=100&elementor-preview=100&ver=1758821415
+        case (bool)preg_match('/^\/\?page_id=\d+&elementor/', $current_uri):
         case (bool)preg_match('/^\/\?elementor/', $current_uri):
         case (bool)preg_match('/^\/odr\/\?elementor/', $current_uri):
             return false;
@@ -256,6 +258,8 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/amcsd\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_reference\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_cellparams\/$/i', $current_uri)
+                && !preg_match('/^\/about\/download-data/i', $current_uri)
+                && !preg_match('/^\/about\/mineral-status/i', $current_uri)
                 && !preg_match('/^\/about\/contact-us$/i', $current_uri)
                 && !preg_match('/^\/about\/contact-us\/$/i', $current_uri)
                 && !preg_match('/^\/about\/contribute$/i', $current_uri)
