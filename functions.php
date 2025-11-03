@@ -57,7 +57,7 @@ add_action("um_after_login_fields", function() {
  * if the data is coming from ODR.  If so, no 404 header is
  * sent.
  */
-add_action( 'pre_handle_404', odr_rruff_404_prehandler);
+add_action( 'pre_handle_404', 'odr_rruff_404_prehandler');
 
 function odr_rruff_404_prehandler () {
     global $wp_query;
