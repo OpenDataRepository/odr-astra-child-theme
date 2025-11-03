@@ -599,7 +599,7 @@ function odr_admin_notice() {
     if( get_transient( 'odr-admin-notice-user-created' ) ){
         // Need to add link to open ODR Permissions System (for specific user?)
         wp_admin_notice( '<p>User created in ODR -- success.<br />Please use the link below to grant user permissions in 
-        ODR:<br /><br /><a href="/odr#/odr/admin/user/list" target="_blank">Edit Permissions</a></p>', [ 'type' => 'success', 'dismissible' => true ] );
+        ODR:<br /><br /><a href="/odr/rruff_sample#/odr/admin/user/list" target="_blank">Edit Permissions</a></p>', [ 'type' => 'success', 'dismissible' => true ] );
         delete_transient( 'odr-admin-notice-user-created' );
     }
     if( get_transient( 'odr-admin-notice-user-found' ) ){
