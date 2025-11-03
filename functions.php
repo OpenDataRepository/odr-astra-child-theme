@@ -30,6 +30,8 @@ add_action( 'wp_enqueue_scripts', 'ODR_include_styles', 150 );
 
 /**
  * Sets the redirect value for login redirection
+ *
+ * TODO Check if this does anything - don't think it does
  */
 add_action("um_after_login_fields", function() {
     if( isset( $_SERVER['HTTP_REFERER'] ) && !isset( $_REQUEST['redirect_to'] ) ){
@@ -73,6 +75,13 @@ function odr_rruff_404_prehandler () {
         // Elementor
         // https://itss.odr.io/?elementor-preview=14&ver=1758215529&preview-debug
         // ?page_id=100&elementor-preview=100&ver=1758821415
+	// https://www.rruff.net/wp-admin/post.php?post=26592&action=elementor
+	// https://www.rruff.net/wp-admin/post.php?post=26592&action=elementor
+	// https://www.rruff.net/amcsd/?elementor-preview=26592&ver=1762203184&preview-debug
+	// https://www.rruff.net/amcsd/?preview_id=26592&preview_nonce=3b856c6549&preview=true
+        case (bool)preg_match('/\?preview_id=.*/', $current_uri):
+        case (bool)preg_match('/\?elementor-preview.*/', $current_uri):
+        case (bool)preg_match('/^\/wp-admin\/post.php??post.*/', $current_uri):
         case (bool)preg_match('/^\/\?page_id=\d+&elementor/', $current_uri):
         case (bool)preg_match('/^\/\?elementor/', $current_uri):
         case (bool)preg_match('/^\/odr\/\?elementor/', $current_uri):
@@ -249,7 +258,7 @@ function odr_rruff_404_prehandler () {
             if (
                 !preg_match('/^\/odr\//', $current_uri)
                 && !preg_match('/^\/wp-admin\//i', $current_uri)
-                && !preg_match('/^\/about\/$/i', $current_uri)
+                && !preg_match('/^\/about\//i', $current_uri)
                 && !preg_match('/^\/ima$/i', $current_uri)
                 && !preg_match('/^\/ima\/$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
@@ -258,12 +267,6 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/amcsd\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_reference\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_cellparams\/$/i', $current_uri)
-                && !preg_match('/^\/about\/download-data/i', $current_uri)
-                && !preg_match('/^\/about\/mineral-status/i', $current_uri)
-                && !preg_match('/^\/about\/contact-us$/i', $current_uri)
-                && !preg_match('/^\/about\/contact-us\/$/i', $current_uri)
-                && !preg_match('/^\/about\/contribute$/i', $current_uri)
-                && !preg_match('/^\/about\/contribute\/$/i', $current_uri)
             ) {
                 // Matches RRUFF IDs
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
