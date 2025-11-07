@@ -273,7 +273,7 @@ function odr_rruff_404_prehandler () {
                 $search_params = [];
                 $search_params['dt_id'] = 738;
                 $mineral_id = strip_tags(urldecode($request[count($request)-1]));
-                if(preg_match('/^[rdx]\d+$/', $mineral_id)) {
+                if(preg_match('/^[rdx]+\d+$/i', $mineral_id)) {
                     $search_params['7069'] = $mineral_id;
                     $search_params['sort_by'] = [[
                         "sort_df_id" => "7069",
