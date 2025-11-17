@@ -185,6 +185,18 @@ function odr_rruff_404_prehandler () {
                 wp_redirect($baseurl); exit();
             }
             break;
+
+            // case (bool)preg_match('/^\/ima\/?$/', $current_uri):
+            case (bool)preg_match('/^\/ima\/$/', $current_uri):
+            case (bool)preg_match('/^\/ima\/#$/', $current_uri):
+            case (bool)preg_match('/^\/ima$/', $current_uri):
+                if(!preg_match('/\/\?/', $current_uri)) {
+                    $parts = preg_split('/\//', $current_uri);
+                    $baseurl = '/ima-mineral-list';
+                    wp_redirect($baseurl); exit();
+                }
+                break;
+
         //
         // Mindat - Reference PDF Direct Links
         // http://rruff.geo.arizona.edu/doclib/am/vol83/AM83_458.pdf
@@ -202,6 +214,7 @@ function odr_rruff_404_prehandler () {
             if(!preg_match('/\/\?/', $current_uri)) {
                 $parts = preg_split('/\//', $current_uri);
                 $baseurl = '/odr/view/734/file_download/' . $parts[count($parts) - 1];
+                // print $baseurl;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
