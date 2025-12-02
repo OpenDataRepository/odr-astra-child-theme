@@ -214,7 +214,6 @@ function odr_rruff_404_prehandler () {
             if(!preg_match('/\/\?/', $current_uri)) {
                 $parts = preg_split('/\//', $current_uri);
                 $baseurl = '/odr/view/734/file_download/' . $parts[count($parts) - 1];
-                // print $baseurl;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
@@ -272,6 +271,7 @@ function odr_rruff_404_prehandler () {
                 !preg_match('/^\/odr\//', $current_uri)
                 && !preg_match('/^\/wp-admin\//i', $current_uri)
                 && !preg_match('/^\/about\//i', $current_uri)
+                && !preg_match('/^\/help\//i', $current_uri)
                 && !preg_match('/^\/ima$/i', $current_uri)
                 && !preg_match('/^\/ima\/$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
@@ -307,7 +307,7 @@ function odr_rruff_404_prehandler () {
             break;
     }
 
-    return FALSE;
+    return false;
 }
 
 
