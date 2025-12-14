@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.0.9' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.0' );
 
 /**
  * Enqueue styles
@@ -63,6 +63,7 @@ function odr_rruff_404_prehandler () {
     global $wp_query;
     $current_uri = $_SERVER['REQUEST_URI'];
 
+    // print $current_uri;exit();
     if(!preg_match('/rruff\.net/', $_SERVER['SERVER_NAME'])) {
         // Do not prehandle 404s on sites other than RRUFF.net
         return false;
@@ -136,7 +137,7 @@ function odr_rruff_404_prehandler () {
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 771;
-                $search_params['7197'] =  strip_tags(urldecode($queryArray['txt_mineral']));;
+                $search_params['7197'] = '"' . strip_tags(urldecode($queryArray['txt_mineral'])) . '"';
                 // TODO Cover all parameters.
                 /*
                  * Keyword	Searches by	Sample Query
@@ -240,7 +241,7 @@ function odr_rruff_404_prehandler () {
             // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
             $search_params = [];
             $search_params['dt_id'] = 736;
-            $search_params['7052'] =  strip_tags(urldecode($request[count($request)-1]));
+            $search_params['7052'] =  '"' . strip_tags(urldecode($request[count($request)-1])) . '"';
             $search_params['7062'] = "-1094,-1104";
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/','',$search_query);
@@ -257,7 +258,7 @@ function odr_rruff_404_prehandler () {
             // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
             $search_params = [];
             $search_params['dt_id'] = 771;
-            $search_params['7197'] =  strip_tags(urldecode($request[count($request)-1]));
+            $search_params['7197'] = '"' . strip_tags(urldecode($request[count($request)-1])) . '"';
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/','',$search_query);
             $baseurl = '/odr/amcsd#/odr/search/display/2187/' . $search_query;
@@ -287,13 +288,15 @@ function odr_rruff_404_prehandler () {
                 $search_params['dt_id'] = 738;
                 $mineral_id = strip_tags(urldecode($request[count($request)-1]));
                 if(preg_match('/^[rdx]+\d+$/i', $mineral_id)) {
+                    // RRUFF ID
                     $search_params['7069'] = $mineral_id;
                     $search_params['sort_by'] = [[
                         "sort_df_id" => "7069",
                         "sort_dir" => "asc"
                     ]];
                 } else {
-                    $search_params['7052'] =  $mineral_id;
+                    // MINERAL Name
+                    $search_params['7052'] = '"' . $mineral_id . '"';
                     $search_params['sort_by'] = [[
                         "sort_df_id" => "7052",
                         "sort_dir" => "asc"
@@ -424,6 +427,8 @@ function ODR_include_scripts() {
     wp_enqueue_script('overhang', get_site_url() . $base_path . 'js/mylibs/overhang/overhang.min.js');
     // <!-- App JS -->
     wp_enqueue_script('odr_app', get_site_url() . $base_path . 'js/app.js');
+    // <!-- Statistics Logger -->
+    wp_enqueue_script('odr_statistics_logger', get_site_url() . $base_path . '/js/statistics_logger.js');
     // <!-- Openlayers -->
     wp_enqueue_script('openlayers', get_site_url() . $base_path . 'js/mylibs/ol.js');
     // <!-- Render Plugins -->
@@ -512,7 +517,6 @@ function odr_disable_404_redirection_for_odr_system( $redirect_url ) {
     if (
         is_page( 'odr' )
         || preg_match("/odr/", current( $request ))
-        || preg_match("/ima/", current( $request ))
     ) {
         return false;
     }
