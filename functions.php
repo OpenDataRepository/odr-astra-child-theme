@@ -92,7 +92,10 @@ function odr_rruff_404_prehandler () {
         // TODO Handle External Referrers from MinDat & WebMin
         //
         // Mindat - Raman & XRD Search
-        // http://rruff.geo.arizona.edu/rruff/new_rruff/constructor.php?txt_mineral=actinolite&sel_chemistry_incl_bool=and&txt_chemistry_incl=&sel_chemistry_excl_bool=and&txt_chemistry_excl=&sel_general_bool=and&txt_general=&sel_sort=names&sel_sort_dir=asc&limit=100000&offset=0&r=sample_search&new_sample_search=1
+        // http://rruff.geo.arizona.edu/rruff/new_rruff/constructor.php?txt_mineral=actinolite
+        // &sel_chemistry_incl_bool=and&txt_chemistry_incl=&sel_chemistry_excl_bool=and
+        // &txt_chemistry_excl=&sel_general_bool=and&txt_general=&sel_sort=names&sel_sort_dir=asc
+        // &limit=100000&offset=0&r=sample_search&new_sample_search=1
         case (bool)preg_match('/^\/rruff\/new_rruff\/constructor.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
@@ -111,7 +114,35 @@ function odr_rruff_404_prehandler () {
                 wp_redirect($baseurl); exit();
             }
             break;
+
         //
+        // Mindat - Reference Search
+        // /index.php/r=sample_search/sample_search_id=kkHzucTIgOJVLYdJAYTKoeqFn/R070169/R060570
+        case (bool)preg_match('/^\/index.php\/r=sample_search/i', $current_uri):
+            if(!preg_match('/\/\?/', $current_uri)) {
+                $queryArray = preg_split('/\//', $current_uri);
+                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
+                $search_params = [];
+                $search_params['dt_id'] = 738;
+
+                $search_params['7069'] =  '';
+                for($i=3; $i<count($queryArray); $i++){
+                    if(preg_match("/[RXD]\d+$/",$queryArray[$i])) {
+                        $search_params['7069'] .= $queryArray[$i] . ', ';
+                    }
+                }
+                // remove trailing comma
+                if(preg_match("/, $/", $search_params['7069'])) {
+                    $search_params['7069'] = substr($search_params['7069'], 0, -2);
+                }
+                $search_query = base64_encode(json_encode($search_params));
+                $search_query = preg_replace('/\=+$/', '', $search_query);
+                $baseurl = '/odr/rruff_reference#/odr/search/display/0/' . $search_query;
+                wp_redirect($baseurl); exit();
+            }
+            break;
+
+
         // Mindat - Reference Search
         // https://beta.rruff.net/odr/rruff_reference#/odr/search/display/1999/eyJkdF9pZCI6IjczNCJ9/1
         // http://rruff.info/rruff_1.0/reference_search.php?txt_mineral=actinolite&rruff_action=sbmt_reference_search
@@ -219,8 +250,6 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
-
-
         //
         // IMA Mineral List - Mineral Search
         //
@@ -232,6 +261,17 @@ function odr_rruff_404_prehandler () {
                 wp_redirect($baseurl); exit();
             }
             break;
+
+
+        //
+        //
+        //
+        case (bool)preg_match('/^\/about\/downloads\/xtaldist.exe/i', $current_uri):
+            if(!preg_match('/\/\?/', $current_uri)) {
+               $baseurl = '/software/xtaldist.exe';
+                wp_redirect($baseurl); exit();
+            }
+        break;
 
         //
         // IMA Data lookup - Mineral
