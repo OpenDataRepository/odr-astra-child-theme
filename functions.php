@@ -63,7 +63,6 @@ function odr_rruff_404_prehandler () {
     global $wp_query;
     $current_uri = $_SERVER['REQUEST_URI'];
 
-    // print $current_uri;exit();
     if(!preg_match('/rruff\.net/', $_SERVER['SERVER_NAME'])) {
         // Do not prehandle 404s on sites other than RRUFF.net
         return false;
@@ -71,6 +70,7 @@ function odr_rruff_404_prehandler () {
 
     $request = explode('/', $current_uri);
     $request = odr_stripslashes_array($request);
+    // print 'AAA' . $current_uri;
 
     switch ($current_uri) {
         // Elementor
@@ -86,6 +86,7 @@ function odr_rruff_404_prehandler () {
         case (bool)preg_match('/^\/\?page_id=\d+&elementor/', $current_uri):
         case (bool)preg_match('/^\/\?elementor/', $current_uri):
         case (bool)preg_match('/^\/odr\/\?elementor/', $current_uri):
+            // print 'CCCC' .  $current_uri;exit();
             return false;
             break;
 
@@ -111,14 +112,23 @@ function odr_rruff_404_prehandler () {
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;
+                // print 'DD' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
 
-        //
-        // Mindat - Reference Search
-        // /index.php/r=sample_search/sample_search_id=kkHzucTIgOJVLYdJAYTKoeqFn/R070169/R060570
-        case (bool)preg_match('/^\/index.php\/r=sample_search/i', $current_uri):
+
+        // /AMS/download.php?id=05732.txt&down=text
+
+        // /repository/sample_child_record_powder/by_minerals/alumk__r060014-1__powder__xray_data_xy_raw__2320.txt
+
+        // TODO Add this URL pattern
+        // MED Tasks
+        // /mineral_list/MED/min_loc_details.php?mineral_id=4396&mindat_id=3182
+        // /mineral_list/MED/min_loc_details.php?mineral_id=2144&mindat_id=23935
+
+        case (bool)preg_match('/^\/r\/[RXD]\d+/i', $current_uri):
+        case (bool)preg_match('/^\/export\d+\/[RXD]\d+/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 $queryArray = preg_split('/\//', $current_uri);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -126,7 +136,7 @@ function odr_rruff_404_prehandler () {
                 $search_params['dt_id'] = 738;
 
                 $search_params['7069'] =  '';
-                for($i=3; $i<count($queryArray); $i++){
+                for($i=2; $i<count($queryArray); $i++){
                     if(preg_match("/[RXD]\d+$/",$queryArray[$i])) {
                         $search_params['7069'] .= $queryArray[$i] . ', ';
                     }
@@ -137,8 +147,52 @@ function odr_rruff_404_prehandler () {
                 }
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
-                $baseurl = '/odr/rruff_reference#/odr/search/display/0/' . $search_query;
+                $baseurl = '/odr/rruff#/odr/search/display/0/' . $search_query;
+                // print 'EE' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
+            }
+            break;
+
+
+        //
+        // Mindat - Reference Search
+        // Fails due to X\d{6} being stripped from input array
+        // /index.php/r=sample_search/sample_search_id=fBVTUeyXdcyxLrdXyGsIcDnhK/X050085/R060946
+        // Works
+        // /index.php/r=sample_search/sample_search_id=kkHzucTIgOJVLYdJAYTKoeqFn/R070169/R060570
+        case (bool)preg_match('/^\/index.php\/r=sample_search/i', $current_uri):
+            if(!preg_match('/\/\?/', $current_uri)) {
+                $queryArray = preg_split('/\//', $current_uri);
+                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
+                $search_params = [];
+                $search_params['dt_id'] = 738;
+
+                $search_params['7069'] =  '';
+                for($i=0; $i<count($queryArray); $i++){
+                    if(preg_match("/[RXD]\d+$/",$queryArray[$i])) {
+                        $search_params['7069'] .= $queryArray[$i] . ', ';
+                    }
+                }
+                // remove trailing comma
+                if(preg_match("/, $/", $search_params['7069'])) {
+                    $search_params['7069'] = substr($search_params['7069'], 0, -2);
+                }
+                $search_query = base64_encode(json_encode($search_params));
+                $search_query = preg_replace('/\=+$/', '', $search_query);
+                $baseurl = '/odr/rruff#/odr/search/display/0/' . $search_query;
+                // print 'EE' .  $current_uri;exit();
+                wp_redirect($baseurl); exit();
+            }
+            break;
+
+        // /mineral_list/locality.php?locality_id=16209
+        case (bool)preg_match('/^\/mineral_list\/locality.php/i', $current_uri):
+            if(!preg_match('/\/\?/', $current_uri)) {
+                parse_str($_SERVER['QUERY_STRING'], $queryArray);
+                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
+                $search_params = [];
+                //print 'FF' .  $current_uri;exit();
+                wp_redirect('https://med.rruff.net/locality.php?' . $_SERVER['QUERY_STRING']); exit();
             }
             break;
 
@@ -156,6 +210,7 @@ function odr_rruff_404_prehandler () {
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_reference#/odr/search/display/0/' . $search_query;
+                // print 'GG' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
@@ -214,6 +269,7 @@ function odr_rruff_404_prehandler () {
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/amcsd#/odr/search/display/0/' . $search_query;
+                // print 'HH' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
@@ -225,6 +281,7 @@ function odr_rruff_404_prehandler () {
                 if(!preg_match('/\/\?/', $current_uri)) {
                     $parts = preg_split('/\//', $current_uri);
                     $baseurl = '/ima-mineral-list';
+                    // print 'II' .  $current_uri;exit();
                     wp_redirect($baseurl); exit();
                 }
                 break;
@@ -246,6 +303,7 @@ function odr_rruff_404_prehandler () {
             if(!preg_match('/\/\?/', $current_uri)) {
                 $parts = preg_split('/\//', $current_uri);
                 $baseurl = '/odr/view/734/file_download/' . $parts[count($parts) - 1];
+                // print 'JJ' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
@@ -258,6 +316,7 @@ function odr_rruff_404_prehandler () {
             if(!preg_match('/\/\?/', $current_uri)) {
                 $parts = preg_split('/\//', $current_uri);;
                 $baseurl = '/' . $parts[1] . '/?' . $parts[2];
+                // print 'KK' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
@@ -269,6 +328,7 @@ function odr_rruff_404_prehandler () {
         case (bool)preg_match('/^\/about\/downloads\/xtaldist.exe/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                $baseurl = '/software/xtaldist.exe';
+                // print 'LL' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
         break;
@@ -286,6 +346,7 @@ function odr_rruff_404_prehandler () {
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/','',$search_query);
             $baseurl = '/odr/ima#/odr/search/display/2004/' . $search_query;
+            // print 'MM' .  $current_uri;exit();
             wp_redirect($baseurl); exit();
             break;
 
@@ -302,6 +363,7 @@ function odr_rruff_404_prehandler () {
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/','',$search_query);
             $baseurl = '/odr/amcsd#/odr/search/display/2187/' . $search_query;
+            // print 'NN' .  $current_uri;exit();
             wp_redirect($baseurl); exit();
             break;
 
@@ -311,6 +373,7 @@ function odr_rruff_404_prehandler () {
             if (
                 !preg_match('/^\/odr\//', $current_uri)
                 && !preg_match('/^\/wp-admin\//i', $current_uri)
+                && !preg_match('/^\/doclib\/hom\//i', $current_uri)
                 && !preg_match('/^\/about\//i', $current_uri)
                 && !preg_match('/^\/help\//i', $current_uri)
                 && !preg_match('/^\/ima$/i', $current_uri)
@@ -345,11 +408,13 @@ function odr_rruff_404_prehandler () {
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;
+                // print 'OO' .  $current_uri;exit();
                 wp_redirect($baseurl); exit();
             }
             break;
     }
 
+    // print 'bbb' . $current_uri;exit();
     return false;
 }
 
