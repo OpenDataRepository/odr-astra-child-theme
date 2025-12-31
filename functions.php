@@ -86,6 +86,7 @@ function odr_rruff_404_prehandler () {
         case (bool)preg_match('/^\/\?page_id=\d+&elementor/', $current_uri):
         case (bool)preg_match('/^\/\?elementor/', $current_uri):
         case (bool)preg_match('/^\/odr\/\?elementor/', $current_uri):
+        case (bool)preg_match('/^\/odr\/system/', $current_uri):
             // print 'CCCC' .  $current_uri;exit();
             return false;
             break;
