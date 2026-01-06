@@ -98,6 +98,11 @@ function odr_rruff_404_prehandler () {
         // &sel_chemistry_incl_bool=and&txt_chemistry_incl=&sel_chemistry_excl_bool=and
         // &txt_chemistry_excl=&sel_general_bool=and&txt_general=&sel_sort=names&sel_sort_dir=asc
         // &limit=100000&offset=0&r=sample_search&new_sample_search=1
+	    //
+	    //
+	    // /constructor.php?r=sample_search&new_sample_search=1&txt_mineral=Betalomonosovite
+	    //
+        case (bool)preg_match('/constructor.php/i', $current_uri):
         case (bool)preg_match('/^\/rruff\/new_rruff\/constructor.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
@@ -119,7 +124,6 @@ function odr_rruff_404_prehandler () {
             break;
 
 
-        // /AMS/download.php?id=05732.txt&down=text
 
         // /repository/sample_child_record_powder/by_minerals/alumk__r060014-1__powder__xray_data_xy_raw__2320.txt
 
@@ -154,6 +158,39 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
+	    // {"dt_id":"738","7052":"anorthite","7069":"R040059, R040059, R070510, R130296, R060082"}
+	    // /index.php?txt_mineral=anorthite&sel_chemistry_incl_bool=and&sel_chemistry_excl_bool=and&sel_general_bool=and&sel_sort=names&sel_sort_dir=asc&limit=100000&offset=0&r=sample_search&new_sample_search=1/R040059/R040059/R070510/R130296/R060082
+        case (bool)preg_match('/^\/index.php\?/i', $current_uri):
+	    if(preg_match('/\?/', $current_uri)) {
+                parse_str($_SERVER['QUERY_STRING'], $queryArray);
+                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
+                $search_params = [];
+                $search_params['dt_id'] = 738;
+
+		if(isset($queryArray['txt_mineral'])) {
+                    $search_params['7052'] .= $queryArray['txt_mineral'] . ', ';
+		}
+
+                $search_params['7069'] =  '';
+		// Get Search Params
+		if(isset($queryArray['new_sample_search'])) {
+		    $search_data = preg_split('/\//', $queryArray['new_sample_search']);
+                    for($i=0; $i<count($search_data); $i++){
+                        if(preg_match("/[RXD]\d+$/",$search_data[$i])) {
+                            $search_params['7069'] .= $search_data[$i] . ', ';
+                        }
+                    }
+                    // remove trailing comma
+                    if(preg_match("/, $/", $search_params['7069'])) {
+                        $search_params['7069'] = substr($search_params['7069'], 0, -2);
+                    }
+		}
+                $search_query = base64_encode(json_encode($search_params));
+                $search_query = preg_replace('/\=+$/', '', $search_query);
+                $baseurl = '/odr/rruff#/odr/search/display/0/' . $search_query;
+                wp_redirect($baseurl); exit();
+            }
+            break;
 
         //
         // Mindat - Reference Search
@@ -186,7 +223,18 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
+        // /mineral_list/MED/min_loc_details.php?mindat_id=14215&mineral_id=3955
+	//  to => https://med.rruff.net/MED/min_loc_details.php?mindat_id=27154&mineral_id=3216
         // /mineral_list/locality.php?locality_id=16209
+        case (bool)preg_match('/^\/mineral_list\/MED\/min_loc_details.php/i', $current_uri):
+            if(!preg_match('/\/\?/', $current_uri)) {
+                parse_str($_SERVER['QUERY_STRING'], $queryArray);
+                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
+                $search_params = [];
+                wp_redirect('https://med.rruff.net/MED/min_loc_details.php?' . $_SERVER['QUERY_STRING']); exit();
+            }
+            break;
+
         case (bool)preg_match('/^\/mineral_list\/locality.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
@@ -215,17 +263,29 @@ function odr_rruff_404_prehandler () {
                 wp_redirect($baseurl); exit();
             }
             break;
+
         //
         // Mindat - AMCSD Search
         // http://rruff.geo.arizona.edu/AMS/result.php?mineral=actinolite
+	//
+        // /AMS/result.php?key=_database_code_amcsd%252B0009632&viewing=html
+	//
+        // /AMS/download.php?id=05732.txt&down=text
         case (bool)preg_match('/^\/AMS\/result.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 771;
-                $search_params['7197'] = '"' . strip_tags(urldecode($queryArray['txt_mineral'])) . '"';
-                // TODO Cover all parameters.
+		if(isset($queryArray['txt_mineral'])) {
+                    $search_params['7197'] = '"' . strip_tags(urldecode($queryArray['txt_mineral'])) . '"';
+		}
+		if(isset($queryArray['key'])) {
+		    // _database_code_amcsd%252B
+	   	    $parameter_string = urldecode($queryArray['key']);
+		    $parameter_data = preg_split('/\+/', $parameter_string);
+                    $search_params['7191'] = $parameter_data[1];
+		}
                 /*
                  * Keyword	Searches by	Sample Query
                  *  mineral	By mineral name
@@ -286,6 +346,24 @@ function odr_rruff_404_prehandler () {
                     wp_redirect($baseurl); exit();
                 }
                 break;
+
+
+
+
+
+
+	// /doclib/MinMag/Volume_54/54-374-129.htm
+        case (bool)preg_match('/^\/doclib\/MinMag/i', $current_uri):
+        case (bool)preg_match('/^\/doclib\/mj/i', $current_uri):
+        case (bool)preg_match('/^\/doclib\/jmps/i', $current_uri):
+        case (bool)preg_match('/^\/doclib\/mm/i', $current_uri):
+        case (bool)preg_match('/^\/doclib\/zk/i', $current_uri):
+	   global $wp_query;
+    	   $wp_query->set_404();
+    	   status_header( 404 );
+    	   get_template_part( 404 );
+    	   exit();
+	break;
 
         //
         // Mindat - Reference PDF Direct Links
@@ -406,6 +484,13 @@ function odr_rruff_404_prehandler () {
                         "sort_dir" => "asc"
                     ]];
                 }
+		// There could be query parameters
+		// /Bustamite?sample_child_id=2197&sample_child_record_raman_id=162%2C163%2C164%2C165%2FR060889&sample_id=14%2FR140465%2FR060994%2FR060886%2FR060888%2FR060953%2FR060654%2FR060808
+                // parse_str($_SERVER['QUERY_STRING'], $queryArray);
+		// if(isset($queryArray['sample_id'])) {
+			// // print urldecode($queryArray['sample_id']);exit();
+		// }
+		
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;
