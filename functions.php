@@ -461,6 +461,7 @@ function odr_rruff_404_prehandler () {
 
 	    // MORE TO DO
 	    // http://rruff.net/repository/sample_child_record_powder/by_minerals/Awaruite__R061020-1__Powder__DIF_File__7990.txt
+	    // /all/source/asc/R090018
 
         // RRUFF - Mineral or RRUFF ID Search
         case (bool)preg_match('/^\/./i', $current_uri):
