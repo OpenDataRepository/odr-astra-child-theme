@@ -264,13 +264,24 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
+
+        // /AMS/download.php?id=05732.txt&down=text
+        // /AMS/download.php?down=text&id=09768.cif
+	// /AMS/download.php?id=01644.txt&down=dif
+	// /AMS/download.php?id=11497.amc&down=text
+        // /AMS/download.php?id=18469.amc&down=text
+	// /AMS/download.php?down=text&id=04536.amc
+        case (bool)preg_match('/^\/AMS\/download.php/i', $current_uri):
+            parse_str($_SERVER['QUERY_STRING'], $queryArray);
+            $baseurl = '/odr/view/771/file_download/' . $queryArray['id'];
+            wp_redirect($baseurl); exit();
+            break;
         //
         // Mindat - AMCSD Search
         // http://rruff.geo.arizona.edu/AMS/result.php?mineral=actinolite
 	//
         // /AMS/result.php?key=_database_code_amcsd%252B0009632&viewing=html
 	//
-        // /AMS/download.php?id=05732.txt&down=text
         case (bool)preg_match('/^\/AMS\/result.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
@@ -387,6 +398,7 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
+
         //
         // IMA Mineral List - Mineral Search
         //
@@ -445,6 +457,10 @@ function odr_rruff_404_prehandler () {
             // print 'NN' .  $current_uri;exit();
             wp_redirect($baseurl); exit();
             break;
+
+
+	    // MORE TO DO
+	    // http://rruff.net/repository/sample_child_record_powder/by_minerals/Awaruite__R061020-1__Powder__DIF_File__7990.txt
 
         // RRUFF - Mineral or RRUFF ID Search
         case (bool)preg_match('/^\/./i', $current_uri):
