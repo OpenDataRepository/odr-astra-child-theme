@@ -14,13 +14,6 @@
     "optional": true
   },
   {
-    "name": "Font Awesome",
-    "host": "wordpress",
-    "slug": "font-awesome/font-awesome.php",
-    "uri":  "https://wordpress.org/plugins/font-awesome/",
-    "optional": true
-  },
-  {
     "name": "WP Forms Lite",
     "host": "wordpress",
     "slug": "wpforms-lite/wpforms.php",
@@ -53,13 +46,6 @@
     "host": "wordpress",
     "slug": "custom-css-js/custom-css-js.php",
     "uri":  "https://wordpress.org/plugins/custom-css-js/",
-    "optional": true
-  },
-  {
-    "name": "Sky Login Redirect",
-    "host": "wordpress",
-    "slug": "sky-login-redirect/sky-login-redirect.php",
-    "uri":  "https://wordpress.org/plugins/sky-login-redirect/",
     "optional": true
   },
   {
