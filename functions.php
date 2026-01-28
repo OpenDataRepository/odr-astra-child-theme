@@ -327,9 +327,7 @@ function odr_rruff_404_prehandler () {
 
             $search_params = [];
             $search_params['dt_id'] = 771;
-            if(isset($queryArray['txt_mineral'])) {
-                $search_params['7197'] = '"' . $mineral_name . '"';
-            }
+            $search_params['7197'] = '"' . $mineral_name . '"';
 
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/', '', $search_query);
@@ -343,9 +341,7 @@ function odr_rruff_404_prehandler () {
 
             $search_params = [];
             $search_params['dt_id'] = 771;
-            if(isset($queryArray['txt_author'])) {
-                $search_params['7192'] = '"' . $author_name . '"';
-            }
+            $search_params['7192'] = '"' . $author_name . '"';
 
             $search_query = base64_encode(json_encode($search_params));
             $search_query = preg_replace('/\=+$/', '', $search_query);
