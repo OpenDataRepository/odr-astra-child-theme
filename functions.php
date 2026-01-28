@@ -80,6 +80,7 @@ function odr_rruff_404_prehandler () {
 	// https://www.rruff.net/wp-admin/post.php?post=26592&action=elementor
 	// https://www.rruff.net/amcsd/?elementor-preview=26592&ver=1762203184&preview-debug
 	// https://www.rruff.net/amcsd/?preview_id=26592&preview_nonce=3b856c6549&preview=true
+        case (bool)preg_match('/\?jb-generate.*/', $current_uri):
         case (bool)preg_match('/\?preview_id=.*/', $current_uri):
         case (bool)preg_match('/\?elementor-preview.*/', $current_uri):
         case (bool)preg_match('/^\/wp-admin\/post.php??post.*/', $current_uri):
@@ -264,80 +265,117 @@ function odr_rruff_404_prehandler () {
             }
             break;
 
+        /*
+         * Keyword	Searches by	Sample Query
+        *  miner al	By mineral name
+        *  http://rruff.geo.arizona.edu/AMS/result.php?mineral=heulandite
+        *  Returns all the datafiles for the mineral heulandite.
+        *
+        *  Alternately, you may also search for minerals using this form:
+        *  http://rruff.geo.arizona.edu/AMS/minerals/heulandite
+        *
+        *  author	By author name	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T
+        *  Returns all the datafiles for the author Downs R T.
+        *
+        *  Alternately, you may also search for authors using this form:
+        *  http://rruff.geo.arizona.edu/AMS/authors/Downs
+        *  AMS/authors/Cox%20S%20F%20JI
+        *
+        *  chemistry	By element	http://rruff.geo.arizona.edu/AMS/result.php?chemistry=Mg,Si,O
+        *  Returns all files containing the elements Mg,Si,O.
+        *
+        *  CellValues	By cell parameters	http://rruff.geo.arizona.edu/AMS/result.php?CellValues=sg=A2_122
+        *  Returns all files with the space group A2_122.
+        *
+        *  key	By keyword	http://rruff.geo.arizona.edu/AMS/result.php?key=Arizona
+        *  Returns all the datafiles containing the Search Term "Arizona".
+        *
+        *  diff	Diffraction Values	http://rruff.geo.arizona.edu/AMS/result.php?diff=vals(9.4401,6.6713),opt(),type(d-spacing),tolerance(.001)
+        *  Returns all records with d-spacing values of 9.4401 and 6.6713 with a tolerance of .001.
+        *
+        *  http://rruff.geo.arizona.edu/AMS/result.php?diff=vals(6.6713,9.4401),opt(Cu),type(2-Theta),tolerance(.5)
+        *
+        *  Returns records with 2-theta values using a wavelength of copper and a tolerance of .5.
+        *
+        *  viewing	Sets viewing format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&viewing=dif
+        *  Would  return all records by author "Downs R T" and sets viewing format to diffraction values. Available options are "amc" (the default), "cif," or "dif", which will create a download file with diffraction data. A special option "rawcif" is available that returns a raw text dump of the cif data results.
+        *
+        *  download	Sets download format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&download=dif
+        *  Would  return all records by author "Downs R T" and sets download format to diffraction values. Available options are "amc" (the default), "cif," or "dif", which will create a download file with diffraction data.
+        *
+        *  logic 	Sets matching logic format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&mineral=Hazenite&download=dif
+        *  Would  return all records by author "Downs R T" AND matching mineral name "Hazenite". Default is "AND".
+        *
+        */
 
         // /AMS/download.php?id=05732.txt&down=text
         // /AMS/download.php?down=text&id=09768.cif
-	// /AMS/download.php?id=01644.txt&down=dif
-	// /AMS/download.php?id=11497.amc&down=text
+	    // /AMS/download.php?id=01644.txt&down=dif
+	    // /AMS/download.php?id=11497.amc&down=text
         // /AMS/download.php?id=18469.amc&down=text
-	// /AMS/download.php?down=text&id=04536.amc
+	    // /AMS/download.php?down=text&id=04536.amc
         case (bool)preg_match('/^\/AMS\/download.php/i', $current_uri):
             parse_str($_SERVER['QUERY_STRING'], $queryArray);
             $baseurl = '/odr/view/771/file_download/' . $queryArray['id'];
             wp_redirect($baseurl); exit();
             break;
+
+
+        case (bool)preg_match('/^\/AMS\/minerals/i', $current_uri):
+            $mineral_name = preg_replace('/\/AMS\/minerals\//', '', $current_uri);
+            $mineral_name = urldecode($mineral_name);
+
+            $search_params = [];
+            $search_params['dt_id'] = 771;
+            if(isset($queryArray['txt_mineral'])) {
+                $search_params['7197'] = '"' . $mineral_name . '"';
+            }
+
+            $search_query = base64_encode(json_encode($search_params));
+            $search_query = preg_replace('/\=+$/', '', $search_query);
+            $baseurl = '/odr/amcsd#/odr/search/display/0/' . $search_query;
+            wp_redirect($baseurl); exit();
+            break;
+
+        case (bool)preg_match('/^\/AMS\/authors/i', $current_uri):
+            $author_name = preg_replace('/\/AMS\/authors\//', '', $current_uri);
+            $author_name = urldecode($author_name);
+
+            $search_params = [];
+            $search_params['dt_id'] = 771;
+            if(isset($queryArray['txt_author'])) {
+                $search_params['7192'] = '"' . $author_name . '"';
+            }
+
+            $search_query = base64_encode(json_encode($search_params));
+            $search_query = preg_replace('/\=+$/', '', $search_query);
+            $baseurl = '/odr/amcsd#/odr/search/display/0/' . $search_query;
+            wp_redirect($baseurl); exit();
+            break;
+
+
         //
         // Mindat - AMCSD Search
         // http://rruff.geo.arizona.edu/AMS/result.php?mineral=actinolite
-	//
+	    //
         // /AMS/result.php?key=_database_code_amcsd%252B0009632&viewing=html
-	//
+	    //
         case (bool)preg_match('/^\/AMS\/result.php/i', $current_uri):
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 771;
-		if(isset($queryArray['txt_mineral'])) {
+		        if(isset($queryArray['txt_mineral'])) {
                     $search_params['7197'] = '"' . strip_tags(urldecode($queryArray['txt_mineral'])) . '"';
-		}
-		if(isset($queryArray['key'])) {
-		    // _database_code_amcsd%252B
-	   	    $parameter_string = urldecode($queryArray['key']);
-		    $parameter_data = preg_split('/\+/', $parameter_string);
+		        }
+		        if(isset($queryArray['key'])) {
+		        // _database_code_amcsd%252B
+	   	            $parameter_string = urldecode($queryArray['key']);
+		            $parameter_data = preg_split('/\+/', $parameter_string);
                     $search_params['7191'] = $parameter_data[1];
-		}
-                /*
-                 * Keyword	Searches by	Sample Query
-                 *  mineral	By mineral name
-                 *  http://rruff.geo.arizona.edu/AMS/result.php?mineral=heulandite
-                 *  Returns all the datafiles for the mineral heulandite.
-                 *
-                 *  Alternately, you may also search for minerals using this form:
-                 *  http://rruff.geo.arizona.edu/AMS/minerals/heulandite
-                 *
-                   author	By author name	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T
-                 *  Returns all the datafiles for the author Downs R T.
-                 *
-                 *  Alternately, you may also search for authors using this form:
-                 *  http://rruff.geo.arizona.edu/AMS/authors/Downs
-                 *
-                 *  chemistry	By element	http://rruff.geo.arizona.edu/AMS/result.php?chemistry=Mg,Si,O
-                 *  Returns all files containing the elements Mg,Si,O.
-                 *
-                 *  CellValues	By cell parameters	http://rruff.geo.arizona.edu/AMS/result.php?CellValues=sg=A2_122
-                 *  Returns all files with the space group A2_122.
-                 *
-                 *  key	By keyword	http://rruff.geo.arizona.edu/AMS/result.php?key=Arizona
-                 *  Returns all the datafiles containing the Search Term "Arizona".
-                 *
-                 *  diff	Diffraction Values	http://rruff.geo.arizona.edu/AMS/result.php?diff=vals(9.4401,6.6713),opt(),type(d-spacing),tolerance(.001)
-                 *  Returns all records with d-spacing values of 9.4401 and 6.6713 with a tolerance of .001.
-                 *
-                 *  http://rruff.geo.arizona.edu/AMS/result.php?diff=vals(6.6713,9.4401),opt(Cu),type(2-Theta),tolerance(.5)
-                 *
-                 *  Returns records with 2-theta values using a wavelength of copper and a tolerance of .5.
-                 *
-                 *  viewing	Sets viewing format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&viewing=dif
-                 *  Would return all records by author "Downs R T" and sets viewing format to diffraction values. Available options are "amc" (the default), "cif," or "dif", which will create a download file with diffraction data. A special option "rawcif" is available that returns a raw text dump of the cif data results.
-                 *
-                 *  download	Sets download format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&download=dif
-                 *  Would return all records by author "Downs R T" and sets download format to diffraction values. Available options are "amc" (the default), "cif," or "dif", which will create a download file with diffraction data.
-                 *
-                 *  logic	Sets matching logic format	http://rruff.geo.arizona.edu/AMS/result.php?author=Downs R T&mineral=Hazenite&download=dif
-                 *  Would return all records by author "Downs R T" AND matching mineral name "Hazenite". Default is "AND".
-                 *
-                 */
+		        }
+
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/amcsd#/odr/search/display/0/' . $search_query;
@@ -360,21 +398,18 @@ function odr_rruff_404_prehandler () {
 
 
 
-
-
-
-	// /doclib/MinMag/Volume_54/54-374-129.htm
-        case (bool)preg_match('/^\/doclib\/MinMag/i', $current_uri):
-        case (bool)preg_match('/^\/doclib\/mj/i', $current_uri):
-        case (bool)preg_match('/^\/doclib\/jmps/i', $current_uri):
-        case (bool)preg_match('/^\/doclib\/mm/i', $current_uri):
-        case (bool)preg_match('/^\/doclib\/zk/i', $current_uri):
-	   global $wp_query;
-    	   $wp_query->set_404();
-    	   status_header( 404 );
-    	   get_template_part( 404 );
-    	   exit();
-	break;
+	        // /doclib/MinMag/Volume_54/54-374-129.htm
+            case (bool)preg_match('/^\/doclib\/MinMag/i', $current_uri):
+            case (bool)preg_match('/^\/doclib\/mj/i', $current_uri):
+            case (bool)preg_match('/^\/doclib\/jmps/i', $current_uri):
+            case (bool)preg_match('/^\/doclib\/mm/i', $current_uri):
+            case (bool)preg_match('/^\/doclib\/zk/i', $current_uri):
+	            global $wp_query;
+    	        $wp_query->set_404();
+    	        status_header( 404 );
+    	        get_template_part( 404 );
+    	        exit();
+	        break;
 
         //
         // Mindat - Reference PDF Direct Links
@@ -478,6 +513,8 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
                 && !preg_match('/^\/amcsd$/i', $current_uri)
                 && !preg_match('/^\/amcsd\/$/i', $current_uri)
+                && !preg_match('/^\/references$/i', $current_uri)
+                && !preg_match('/^\/references\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_reference\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_cellparams\/$/i', $current_uri)
             ) {
