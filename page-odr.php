@@ -29,6 +29,8 @@ if(!preg_match("/graph\/static/", $_SERVER['REQUEST_URI'])) {
       redirect_url = "/odr/rruff_sample#/odr/search/display/2010"]
   */
 
+    // TODO Figure out if this is still needed
+    /*
   $content = '[odr-rruff-search-display datatype_id = "738"
       general_search = "gen"
       chemistry_incl = "7055"
@@ -38,6 +40,7 @@ if(!preg_match("/graph\/static/", $_SERVER['REQUEST_URI'])) {
 
   // Probably missing some CSS, etc.
   $output .= do_shortcode( $content, false );
+    */
 
   get_header();
   $wp_header = ob_get_contents();
@@ -108,15 +111,34 @@ $wp_query->is_404=false;
 /**
  * @var Composer\Autoload\ClassLoader
  */
-$loader = require __DIR__.'/../../data-publisher/app/autoload.php';
-require_once __DIR__.'/../../data-publisher/app/bootstrap.php.cache';
+
+// Anchor on ABSPATH (WordPress's own install path) instead of __DIR__.
+// This theme file is symlinked into wp-content/themes, so __DIR__ would
+// resolve through the symlink back to the source theme directory and point
+// ODR_APP_DIR at the wrong data-publisher instance. ABSPATH is set by
+// WordPress itself from a non-symlinked wp-load.php and always points at
+// the real running install, so its parent is where the sibling
+// data-publisher linked instance lives.
+$odr_wp_root = rtrim(ABSPATH, '/');
+$odr_instance_root = dirname($odr_wp_root) . '/data-publisher';
+
+if (!defined('ODR_APP_DIR')) {
+    define('ODR_APP_DIR', $odr_instance_root . '/app');
+}
+
+$loader = require $odr_instance_root . '/app/autoload.php';
+require_once $odr_instance_root . '/app/bootstrap.php.cache';
+
 $kernel = new AppKernel('prod', false);
 $kernel->loadClassCache();
 $request = Request::createFromGlobals();
+
 // Add the Wordpress Header to the Request Obj
 // Fix the AST (astra) container
 $request->wordpress_header = preg_replace('/ast-container">/', 'ast-container"></div><div>', $wp_header);
+// print $request->wordpress_header; 
 $request->wordpress_footer = $wp_footer;
+// print $request->wordpress_footer; exit();
 
 // Kernel process request
 $response = $kernel->handle($request);

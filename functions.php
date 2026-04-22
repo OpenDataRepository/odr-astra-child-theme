@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.0' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.1' );
 
 /**
  * Enqueue styles
@@ -74,16 +74,16 @@ function odr_rruff_404_prehandler () {
 
     switch ($current_uri) {
         // Elementor
-        // https://itss.odr.io/?elementor-preview=14&ver=1758215529&preview-debug
+        // ?elementor-preview=14&ver=1758215529&preview-debug
         // ?page_id=100&elementor-preview=100&ver=1758821415
-	// https://www.rruff.net/wp-admin/post.php?post=26592&action=elementor
-	// https://www.rruff.net/wp-admin/post.php?post=26592&action=elementor
-	// https://www.rruff.net/amcsd/?elementor-preview=26592&ver=1762203184&preview-debug
-	// https://www.rruff.net/amcsd/?preview_id=26592&preview_nonce=3b856c6549&preview=true
+	    // /wp-admin/post.php?post=26592&action=elementor
+	    // /wp-admin/post.php?post=26592&action=elementor
+	    // /amcsd/?elementor-preview=26592&ver=1762203184&preview-debug
+	    // /amcsd/?preview_id=26592&preview_nonce=3b856c6549&preview=true
         case (bool)preg_match('/\?jb-generate.*/', $current_uri):
         case (bool)preg_match('/\?preview_id=.*/', $current_uri):
         case (bool)preg_match('/\?elementor-preview.*/', $current_uri):
-        case (bool)preg_match('/^\/wp-admin\/post.php??post.*/', $current_uri):
+        case (bool)preg_match('/^\/wp-admin\/post.php?post.*/', $current_uri):
         case (bool)preg_match('/^\/\?page_id=\d+&elementor/', $current_uri):
         case (bool)preg_match('/^\/\?elementor/', $current_uri):
         case (bool)preg_match('/^\/odr\/\?elementor/', $current_uri):
