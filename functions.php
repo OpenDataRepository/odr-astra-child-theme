@@ -59,20 +59,52 @@ add_action("um_after_login_fields", function() {
  */
 add_action( 'pre_handle_404', 'odr_rruff_404_prehandler');
 
+/**
+ * Sends a minimal 404 response and exits the request.
+ *
+ * Used by `odr_rruff_404_prehandler` and any other route handler that
+ * needs to retire a URL pattern. Kept tiny on purpose — no JS, no
+ * styles, no header/footer template, just an HTTP 404 status, a
+ * one-line message, and a link back to the home page. Total payload
+ * is well under 1 KB so deprecated URLs cost almost nothing to serve
+ * and crawlers see a clear "drop this from the index" signal.
+ *
+ * The X-Robots-Tag header is the SEO half of the signal — it works
+ * even for clients that ignore the visible page (image bots, etc).
+ */
+function odr_send_minimal_404() {
+    if ( ! headers_sent() ) {
+        status_header( 404 );
+        nocache_headers();
+        header( 'Content-Type: text/html; charset=utf-8' );
+        header( 'X-Robots-Tag: noindex, nofollow' );
+    }
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+       . '<title>404 Not Found</title></head>'
+       . '<body><h1>404 Not Found</h1>'
+       . '<p>This page is no longer available. <a href="/">Return to the homepage</a>.</p>'
+       . '</body></html>';
+    exit;
+}
+
 function odr_rruff_404_prehandler () {
     global $wp_query;
     $current_uri = $_SERVER['REQUEST_URI'];
 
-    if(!preg_match('/rruff\.net/', $_SERVER['SERVER_NAME'])) {
+    if(!preg_match('/rruff\.net/', $_SERVER['SERVER_NAME']) &&  
+       !preg_match('/dev.rruff\.net/', $_SERVER['SERVER_NAME']) &&
+       !preg_match('/beta.rruff\.net/', $_SERVER['SERVER_NAME'])) {
         // Do not prehandle 404s on sites other than RRUFF.net
         return false;
     }
 
     $request = explode('/', $current_uri);
     $request = odr_stripslashes_array($request);
-    // print 'AAA' . $current_uri;
 
     switch ($current_uri) {
+        case (bool)preg_match('/sitemap.xml/', $current_uri):
+            return false;
+            break;
         // Elementor
         // ?elementor-preview=14&ver=1758215529&preview-debug
         // ?page_id=100&elementor-preview=100&ver=1758821415
@@ -162,20 +194,21 @@ function odr_rruff_404_prehandler () {
 	    // {"dt_id":"738","7052":"anorthite","7069":"R040059, R040059, R070510, R130296, R060082"}
 	    // /index.php?txt_mineral=anorthite&sel_chemistry_incl_bool=and&sel_chemistry_excl_bool=and&sel_general_bool=and&sel_sort=names&sel_sort_dir=asc&limit=100000&offset=0&r=sample_search&new_sample_search=1/R040059/R040059/R070510/R130296/R060082
         case (bool)preg_match('/^\/index.php\?/i', $current_uri):
-	    if(preg_match('/\?/', $current_uri)) {
+            odr_send_minimal_404();exit();
+	        if(preg_match('/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 738;
 
-		if(isset($queryArray['txt_mineral'])) {
+		        if(isset($queryArray['txt_mineral'])) {
                     $search_params['7052'] .= $queryArray['txt_mineral'] . ', ';
-		}
+		        }
 
                 $search_params['7069'] =  '';
-		// Get Search Params
-		if(isset($queryArray['new_sample_search'])) {
-		    $search_data = preg_split('/\//', $queryArray['new_sample_search']);
+		        // Get Search Params
+	        	if(isset($queryArray['new_sample_search'])) {
+		            $search_data = preg_split('/\//', $queryArray['new_sample_search']);
                     for($i=0; $i<count($search_data); $i++){
                         if(preg_match("/[RXD]\d+$/",$search_data[$i])) {
                             $search_params['7069'] .= $search_data[$i] . ', ';
@@ -185,7 +218,7 @@ function odr_rruff_404_prehandler () {
                     if(preg_match("/, $/", $search_params['7069'])) {
                         $search_params['7069'] = substr($search_params['7069'], 0, -2);
                     }
-		}
+		        }
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff#/odr/search/display/0/' . $search_query;
@@ -200,6 +233,7 @@ function odr_rruff_404_prehandler () {
         // Works
         // /index.php/r=sample_search/sample_search_id=kkHzucTIgOJVLYdJAYTKoeqFn/R070169/R060570
         case (bool)preg_match('/^\/index.php\/r=sample_search/i', $current_uri):
+            odr_send_minimal_404();exit();
             if(!preg_match('/\/\?/', $current_uri)) {
                 $queryArray = preg_split('/\//', $current_uri);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -228,6 +262,7 @@ function odr_rruff_404_prehandler () {
 	//  to => https://med.rruff.net/MED/min_loc_details.php?mindat_id=27154&mineral_id=3216
         // /mineral_list/locality.php?locality_id=16209
         case (bool)preg_match('/^\/mineral_list\/MED\/min_loc_details.php/i', $current_uri):
+            odr_send_minimal_404();exit();
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -251,6 +286,7 @@ function odr_rruff_404_prehandler () {
         // https://beta.rruff.net/odr/rruff_reference#/odr/search/display/1999/eyJkdF9pZCI6IjczNCJ9/1
         // http://rruff.info/rruff_1.0/reference_search.php?txt_mineral=actinolite&rruff_action=sbmt_reference_search
         case (bool)preg_match('/^\/rruff_1.0\/reference_search.php/i', $current_uri):
+            odr_send_minimal_404();exit();
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -321,7 +357,9 @@ function odr_rruff_404_prehandler () {
             break;
 
 
+        // TODO This could to to cached probably
         case (bool)preg_match('/^\/AMS\/minerals/i', $current_uri):
+            odr_send_minimal_404();exit();
             $mineral_name = preg_replace('/\/AMS\/minerals\//', '', $current_uri);
             $mineral_name = urldecode($mineral_name);
 
@@ -335,7 +373,9 @@ function odr_rruff_404_prehandler () {
             wp_redirect($baseurl); exit();
             break;
 
+        // TODO This could go to cached probably
         case (bool)preg_match('/^\/AMS\/authors/i', $current_uri):
+            odr_send_minimal_404();exit();
             $author_name = preg_replace('/\/AMS\/authors\//', '', $current_uri);
             $author_name = urldecode($author_name);
 
@@ -356,7 +396,9 @@ function odr_rruff_404_prehandler () {
 	    //
         // /AMS/result.php?key=_database_code_amcsd%252B0009632&viewing=html
 	    //
+        // TODO This could go to cached probably
         case (bool)preg_match('/^\/AMS\/result.php/i', $current_uri):
+            odr_send_minimal_404();exit();
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -400,11 +442,12 @@ function odr_rruff_404_prehandler () {
             case (bool)preg_match('/^\/doclib\/jmps/i', $current_uri):
             case (bool)preg_match('/^\/doclib\/mm/i', $current_uri):
             case (bool)preg_match('/^\/doclib\/zk/i', $current_uri):
-	            global $wp_query;
-    	        $wp_query->set_404();
-    	        status_header( 404 );
-    	        get_template_part( 404 );
-    	        exit();
+                odr_send_minimal_404();exit();
+	            // global $wp_query;
+    	        // $wp_query->set_404();
+    	        // status_header( 404 );
+    	        // get_template_part( 404 );
+    	        // exit();
 	        break;
 
         //
@@ -475,6 +518,7 @@ function odr_rruff_404_prehandler () {
         //
         // AMCSD Mineral Search
         //
+        // TODO Should go to cached
         case (bool)preg_match('/^\/amcsd\/./i', $current_uri):
             // Build Base64 URL for AMCSD
             // odr/amcsd#/odr/search/display/2187/
@@ -495,6 +539,7 @@ function odr_rruff_404_prehandler () {
 	    // /all/source/asc/R090018
 
         // RRUFF - Mineral or RRUFF ID Search
+        // These should go to cached
         case (bool)preg_match('/^\/./i', $current_uri):
             // Adding exceptions for know Wordpress or ODR Paths
             if (
@@ -513,6 +558,8 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/references\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_reference\/$/i', $current_uri)
                 && !preg_match('/^\/rruff_cellparams\/$/i', $current_uri)
+                && !preg_match('/^\/rruff$/i', $current_uri)
+                && !preg_match('/^\/rruff\/$/i', $current_uri)
             ) {
                 // Matches RRUFF IDs
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -534,12 +581,13 @@ function odr_rruff_404_prehandler () {
                         "sort_dir" => "asc"
                     ]];
                 }
-		// There could be query parameters
-		// /Bustamite?sample_child_id=2197&sample_child_record_raman_id=162%2C163%2C164%2C165%2FR060889&sample_id=14%2FR140465%2FR060994%2FR060886%2FR060888%2FR060953%2FR060654%2FR060808
+
+		        // There could be query parameters
+		        // /Bustamite?sample_child_id=2197&sample_child_record_raman_id=162%2C163%2C164%2C165%2FR060889&sample_id=14%2FR140465%2FR060994%2FR060886%2FR060888%2FR060953%2FR060654%2FR060808
                 // parse_str($_SERVER['QUERY_STRING'], $queryArray);
-		// if(isset($queryArray['sample_id'])) {
-			// // print urldecode($queryArray['sample_id']);exit();
-		// }
+		        // if(isset($queryArray['sample_id'])) {
+			        // // print urldecode($queryArray['sample_id']);exit();
+		        // }
 		
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
@@ -550,7 +598,6 @@ function odr_rruff_404_prehandler () {
             break;
     }
 
-    // print 'bbb' . $current_uri;exit();
     return false;
 }
 
