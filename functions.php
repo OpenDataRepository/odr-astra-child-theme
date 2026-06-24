@@ -272,6 +272,7 @@ function odr_rruff_404_prehandler () {
             break;
 
         case (bool)preg_match('/^\/mineral_list\/locality.php/i', $current_uri):
+            odr_send_minimal_404();exit();
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
