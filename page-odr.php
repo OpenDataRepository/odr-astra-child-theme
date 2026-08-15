@@ -135,8 +135,10 @@ $request = Request::createFromGlobals();
 
 // Add the Wordpress Header to the Request Obj
 // Fix the AST (astra) container
-$request->attributes->set('wordpress_header',  preg_replace('/ast-container">/', 'ast-container"></div><div>', $wp_header));
-$request->attributes->set('wordpress_footer', $wp_footer);
+// $request->attributes->set('wordpress_header',  preg_replace('/ast-container">/', 'ast-container"></div><div>', $wp_header));
+$request->wordpress_header = preg_replace('/ast-container">/', 'ast-container"></div><div>', $wp_header);
+// $request->attributes->set('wordpress_footer', $wp_footer);
+$request->wordpress_footer = $wp_footer;
 
 // Kernel process request
 $response = $kernel->handle($request);
