@@ -557,6 +557,7 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/ima-mineral-list-2\/$/i', $current_uri)
 
                 && !preg_match('/^\/ima-formula-weights/i', $current_uri)
+                && !preg_match('/^\/mineral-calculator/i', $current_uri)
 
                 && !preg_match('/^\/amcsd$/i', $current_uri)
                 && !preg_match('/^\/amcsd\/$/i', $current_uri)
