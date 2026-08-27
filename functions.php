@@ -787,7 +787,11 @@ add_filter( 'template_include', 'odr_load_system_template' );
 function odr_load_system_template( $original_template ) {
   global $wp;
   $request = explode( '/', $wp->request );
-  if ( is_page( 'odr' ) || preg_match("/odr/", current( $request )) ) {
+  $req_path = isset($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
+  if ( is_page( 'odr' )
+      || preg_match("/odr/", current( $request ))
+      || preg_match('#^/odr(/|$)#', $req_path)      // <-- reliable: URL-based, like page-odr.php
+  ) {
         return plugin_dir_path( __FILE__ ) . 'page-odr.php';
   }
   return $original_template;
@@ -818,10 +822,10 @@ function odr_disable_404_redirection_for_odr_system( $redirect_url ) {
 }
 
 // Makes sure that any request going to /account/... will respond with a proper 200 http code
-add_action( 'init', 'odr_rewrites_init' );
-function odr_rewrites_init(){
-    add_rewrite_rule( '^odr/(.+)', 'index.php', 'top' );
-}
+//add_action( 'init', 'odr_rewrites_init' );
+//function odr_rewrites_init(){
+    //add_rewrite_rule( '^odr/(.+)', 'index.php', 'top' );
+//}
 
 /*
  * Add user to ODR after user add in Wordpress
@@ -1036,7 +1040,6 @@ function runODRKernel($send = false) {
      * @var Composer\Autoload\ClassLoader
      */
     $loader = require __DIR__.'/../../data-publisher/app/autoload.php';
-    require_once __DIR__.'/../../data-publisher/app/bootstrap.php.cache';
     $kernel = new AppKernel('prod', false);
     $kernel->loadClassCache();
     $request = Request::createFromGlobals();
