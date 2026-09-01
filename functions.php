@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.3' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.4' );
 
 /**
  * Enqueue styles
@@ -135,6 +135,11 @@ function odr_rruff_404_prehandler () {
     $request = odr_stripslashes_array($request);
 
     switch ($current_uri) {
+        // sitemap-misc.xml has no content here — send a clean 404 instead of
+        // letting the catch-all treat it as a RRUFF mineral search.
+        case (bool)preg_match('/sitemap-misc\.xml/i', $current_uri):
+            odr_send_minimal_404();
+            break;
         case (bool)preg_match('/sitemap.xml/', $current_uri):
             return false;
             break;
