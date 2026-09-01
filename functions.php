@@ -552,7 +552,7 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/ima$/i', $current_uri)
                 && !preg_match('/^\/ima\/$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
-		&& !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
+		        && !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list-2$/i', $current_uri)
                 && !preg_match('/^\/ima-mineral-list-2\/$/i', $current_uri)
 
@@ -1038,12 +1038,25 @@ function odr_dynamic_menu_items($menu_string, $args ) {
  * @return void
  */
 function runODRKernel($send = false) {
-    /**
-     * @var Composer\Autoload\ClassLoader
-     */
-    $loader = require __DIR__.'/../../data-publisher/app/autoload.php';
+    // Anchor on ABSPATH (WordPress's real install path) rather than __DIR__.
+    // This theme is symlinked into wp-content/themes, so __DIR__ resolves
+    // through the symlink back to the SOURCE theme directory and would point
+    // ODR at the wrong data-publisher instance under a linked/multi-site
+    // setup. ABSPATH is set by WordPress from a non-symlinked wp-load.php and
+    // always points at the running install, whose sibling is the correct
+    // data-publisher. (Mirrors the boot logic in page-odr.php.)
+    $odr_instance_root = dirname(rtrim(ABSPATH, '/')) . '/data-publisher';
+
+    if (!defined('ODR_APP_DIR')) {
+        define('ODR_APP_DIR', $odr_instance_root . '/app');
+    }
+
+    /** @var Composer\Autoload\ClassLoader $loader */
+    $loader = require $odr_instance_root . '/app/autoload.php';
+    require_once $odr_instance_root . '/app/AppKernel.php';
+
     $kernel = new AppKernel('prod', false);
-    $kernel->loadClassCache();
+    // NOTE: loadClassCache() was removed in the Symfony upgrade — do not call it.
     $request = Request::createFromGlobals();
 
     // Kernel process request
