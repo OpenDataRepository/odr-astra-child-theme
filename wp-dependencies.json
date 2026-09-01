@@ -7,13 +7,6 @@
     "optional": true
   },
   {
-    "name": "Disable Emojis",
-    "host": "wordpress",
-    "slug": "disable-emojis/disable-emojis.php",
-    "uri":  "https://wordpress.org/plugins/disable-emojis/",
-    "optional": true
-  },
-  {
     "name": "WP Forms Lite",
     "host": "wordpress",
     "slug": "wpforms-lite/wpforms.php",
@@ -25,13 +18,6 @@
     "host": "wordpress",
     "slug": "adminimize/adminimize.php",
     "uri": "https://wordpress.org/plugins/adminimize/",
-    "optional": true
-  },
-  {
-    "name": "Gmail SMTP",
-    "host": "wordpress",
-    "slug": "gmail-smtp/main.php",
-    "uri":  "https://wordpress.org/plugins/gmail-smtp/",
     "optional": true
   },
   {

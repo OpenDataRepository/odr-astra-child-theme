@@ -87,6 +87,39 @@ function odr_send_minimal_404() {
     exit;
 }
 
+/**
+ * Returns true when the given request URI maps to a real WordPress page or
+ * post. The RRUFF 404 pre-handler uses this so it never hijacks a genuine
+ * WordPress URL (About, Help, the IMA list pages, etc.) as a mineral search.
+ *
+ * This lets editors add/rename WordPress pages without editing this file —
+ * only true ODR system paths (which have no WordPress page behind them) still
+ * need to be listed explicitly in the pre-handler.
+ *
+ * @param string $current_uri e.g. "/about/", "/help", "/foo?x=1"
+ * @return bool
+ */
+function odr_uri_is_wordpress_content($current_uri) {
+    // Strip the query string and surrounding slashes.
+    $path = trim((string) parse_url($current_uri, PHP_URL_PATH), '/');
+    if ($path === '') {
+        return true;   // site root / home page
+    }
+
+    // Hierarchical pages — matches nested paths like "about/team" too.
+    $page = get_page_by_path($path, OBJECT, 'page');
+    if ($page && $page->post_status === 'publish') {
+        return true;
+    }
+
+    // Posts / custom post types resolved through the rewrite rules.
+    if (function_exists('url_to_postid') && url_to_postid('/' . $path) > 0) {
+        return true;
+    }
+
+    return false;
+}
+
 function odr_rruff_404_prehandler () {
     global $wp_query;
     $current_uri = $_SERVER['REQUEST_URI'];
@@ -544,17 +577,15 @@ function odr_rruff_404_prehandler () {
         case (bool)preg_match('/^\/./i', $current_uri):
             // Adding exceptions for know Wordpress or ODR Paths
             if (
-                !preg_match('/^\/odr\//', $current_uri)
+                // WordPress pages/posts are detected dynamically (see
+                // odr_uri_is_wordpress_content); only true ODR/system paths,
+                // which have no WordPress page behind them, remain listed below.
+                !odr_uri_is_wordpress_content($current_uri)
+                && !preg_match('/^\/odr\//', $current_uri)
                 && !preg_match('/^\/wp-admin\//i', $current_uri)
                 && !preg_match('/^\/doclib\/hom\//i', $current_uri)
-                && !preg_match('/^\/about\//i', $current_uri)
-                && !preg_match('/^\/help\//i', $current_uri)
                 && !preg_match('/^\/ima$/i', $current_uri)
                 && !preg_match('/^\/ima\/$/i', $current_uri)
-                && !preg_match('/^\/ima-mineral-list$/i', $current_uri)
-		        && !preg_match('/^\/ima-mineral-list\/$/i', $current_uri)
-                && !preg_match('/^\/ima-mineral-list-2$/i', $current_uri)
-                && !preg_match('/^\/ima-mineral-list-2\/$/i', $current_uri)
 
                 && !preg_match('/^\/ima-formula-weights/i', $current_uri)
                 && !preg_match('/^\/formula-weights/i', $current_uri)
