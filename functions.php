@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.2' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.1.3' );
 
 /**
  * Enqueue styles
