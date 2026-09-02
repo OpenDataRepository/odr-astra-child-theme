@@ -776,6 +776,8 @@ function ODR_include_scripts() {
     wp_enqueue_script('odr_gcms', get_site_url() . $base_path . 'js/mylibs/odr_gcms_plugin.js');
     // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_filter_graph_plugin.js"></script>
     wp_enqueue_script('odr_filter_graph', get_site_url() . $base_path . 'js/mylibs/odr_filter_graph_plugin.js');
+
+    wp_enqueue_script('jsmol', get_site_url() . $base_path . 'js/mylibs/JSmol/JSmol.min.nojq.js');
   }
 }
 
