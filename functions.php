@@ -705,7 +705,7 @@ function ODR_include_scripts() {
     // wp_enqueue_script('', get_site_url() . $base_path . 'js/bundle.js');
 
     // <!-- Essential polyfills -->
-    wp_enqueue_script('modernizr', get_site_url() . $base_path . '/js/mylibs/polyfills/modernizr-2.6.1.min.js');
+    wp_enqueue_script('modernizr', get_site_url() . $base_path . 'js/mylibs/polyfills/modernizr-2.6.1.min.js');
     // <!--[if lt IE 9]>wp_enqueue_script('', get_site_url() . $base_path . 'js/mylibs/polyfills/selectivizr.js"></script><![endif]-->
     // <!--[if lt IE 10]>wp_enqueue_script('', get_site_url() . $base_path . 'js/mylibs/polyfills/excanvas.js"></script><![endif]-->
     // <!--[if lt IE 10]>wp_enqueue_script('', get_site_url() . $base_path . 'js/mylibs/polyfills/classlist.js"></script><![endif]-->
@@ -760,7 +760,7 @@ function ODR_include_scripts() {
     // <!-- App JS -->
     wp_enqueue_script('odr_app', get_site_url() . $base_path . 'js/app.js');
     // <!-- Statistics Logger -->
-    wp_enqueue_script('odr_statistics_logger', get_site_url() . $base_path . '/js/statistics_logger.js');
+    wp_enqueue_script('odr_statistics_logger', get_site_url() . $base_path . 'js/statistics_logger.js');
     // <!-- Openlayers -->
     wp_enqueue_script('openlayers', get_site_url() . $base_path . 'js/mylibs/ol.js');
     // <!-- Render Plugins -->
@@ -769,14 +769,14 @@ function ODR_include_scripts() {
     // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_graph_plugin.js"></script>
     // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_gcms_plugin.js"></script>
 
-    wp_enqueue_script('odr_cellparam', get_site_url() . $base_path . '/js/mylibs/odr_cellparam_plugin.js');
+    wp_enqueue_script('odr_cellparam', get_site_url() . $base_path . 'js/mylibs/odr_cellparam_plugin.js');
     wp_enqueue_script('odr_chemistry', get_site_url() . $base_path . 'js/mylibs/odr_chemistry_plugin.js');
     wp_enqueue_script('odr_graph', get_site_url() . $base_path . 'js/mylibs/odr_graph_plugin.js');
     // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_gcms_plugin.js"></script>
     wp_enqueue_script('odr_gcms', get_site_url() . $base_path . 'js/mylibs/odr_gcms_plugin.js');
     // <script type="text/javascript" src="{{ site_baseurl }}/js/mylibs/odr_filter_graph_plugin.js"></script>
     wp_enqueue_script('odr_filter_graph', get_site_url() . $base_path . 'js/mylibs/odr_filter_graph_plugin.js');
-    wp_enqueue_script('odr_filter_graph', get_site_url() . $base_path . 'js/mylibs/odr_reference_plugin.js');
+    wp_enqueue_script('odr_reference', get_site_url() . $base_path . 'js/mylibs/odr_reference_plugin.js');
 
     wp_enqueue_script('jsmol', get_site_url() . $base_path . 'js/mylibs/JSmol/JSmol.min.nojq.js');
   }
