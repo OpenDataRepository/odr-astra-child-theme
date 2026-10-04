@@ -88,6 +88,127 @@ function odr_send_minimal_404() {
 }
 
 /**
+ * Serves a minimal 404 instead of running an ODR search, unless the visitor is
+ * logged in or is a verified search engine crawler.
+ *
+ * Every mineral-name url handled below turns into an ODR search, which means
+ * bots were triggering a database search for every url they felt like guessing
+ * at.  Until anonymous visitors have some way to prove they're human, only
+ * logged-in users get to spend a search this way -- plus the search engines,
+ * so these urls stay indexed.
+ *
+ * Call this at the point where a search redirect is about to be issued -- not
+ * earlier -- so that real WordPress pages and ODR paths are unaffected.
+ */
+function odr_require_login_for_search() {
+    if ( is_user_logged_in() )
+        return;
+    if ( odr_identify_verified_crawler() !== null )
+        return;
+
+    odr_send_minimal_404();
+}
+
+/**
+ * Returns 'google', 'bing', or 'duckduckgo' when the request comes from an IP
+ * address that search engine publishes for its crawlers, and null otherwise.
+ *
+ * The ranges live in crawler_ips.php, which is generated on the ODR side by
+ * `php app/console odr:crawler_ips:update --out=<this theme>/crawler_ips.php`.
+ * Nothing is downloaded while serving a request.
+ *
+ * NOTE: never identify a crawler by its user agent.  That's a single header
+ * and trivially forged -- it's exactly what the bots being blocked are doing.
+ * REMOTE_ADDR is used rather than X-Forwarded-For for the same reason; if this
+ * site is ever put behind a CDN, that has to become the CDN's own header
+ * (Cloudflare: HTTP_CF_CONNECTING_IP) or every crawler stops being recognized.
+ *
+ * @param string|null $ip Defaults to the current request's address.
+ *
+ * @return string|null
+ */
+function odr_identify_verified_crawler( $ip = null ) {
+    if ( $ip === null )
+        $ip = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : '';
+    if ( $ip === '' )
+        return null;
+
+    // inet_pton() gives 4 packed bytes for IPv4 and 16 for IPv6, which is the
+    //  form crawler_ips.php stores its prefixes in
+    $packed = @inet_pton( $ip );
+    if ( $packed === false )
+        return null;
+
+    $data = odr_crawler_ip_data();
+
+    if ( strlen( $packed ) === 4 ) {
+        // IPv4 prefixes are pre-reduced to a network/mask pair of integers
+        //  when the file is generated, so this is a couple of integer ops
+        $needle = unpack( 'N', $packed )[1];
+        foreach ( $data['ipv4'] as $entry ) {
+            if ( ( $needle & $entry[1] ) === $entry[0] )
+                return $entry[2];
+        }
+
+        return null;
+    }
+
+    foreach ( $data['ipv6'] as $entry ) {
+        $network = @hex2bin( $entry[0] );
+        if ( $network === false || strlen( $network ) !== strlen( $packed ) )
+            continue;
+
+        $bits = $entry[1];
+        $whole_bytes = intdiv( $bits, 8 );
+        if ( $whole_bytes > 0 && strncmp( $packed, $network, $whole_bytes ) !== 0 )
+            continue;
+
+        $leftover_bits = $bits % 8;
+        if ( $leftover_bits === 0 )
+            return $entry[2];
+
+        $mask = ( 0xFF << ( 8 - $leftover_bits ) ) & 0xFF;
+        if ( ( ord( $packed[ $whole_bytes ] ) & $mask ) === ( ord( $network[ $whole_bytes ] ) & $mask ) )
+            return $entry[2];
+    }
+
+    return null;
+}
+
+/**
+ * Loads the generated crawler ranges.  It's a plain php array so opcache holds
+ * it and there's no parsing cost per request.
+ *
+ * A missing or malformed file means no crawler is recognized, which blocks
+ * anonymous visitors (safe) but also de-indexes the site (not safe), so it's
+ * worth noticing in the error log.
+ *
+ * @return array
+ */
+function odr_crawler_ip_data() {
+    static $data = null;
+    if ( $data !== null )
+        return $data;
+
+    $data = array( 'ipv4' => array(), 'ipv6' => array() );
+
+    $file = get_stylesheet_directory() . '/crawler_ips.php';
+    if ( ! file_exists( $file ) ) {
+        error_log( 'odr_crawler_ip_data: no crawler ip file at ' . $file . ', so no crawler will be recognized' );
+        return $data;
+    }
+
+    $loaded = include $file;
+    if ( ! is_array( $loaded ) || ! isset( $loaded['ipv4'] ) || ! isset( $loaded['ipv6'] ) ) {
+        error_log( 'odr_crawler_ip_data: the crawler ip file at ' . $file . ' is malformed' );
+        return $data;
+    }
+
+    $data = $loaded;
+    return $data;
+}
+
+/**
  * Returns true when the given request URI maps to a real WordPress page or
  * post. The RRUFF 404 pre-handler uses this so it never hijacks a genuine
  * WordPress URL (About, Help, the IMA list pages, etc.) as a mineral search.
@@ -541,6 +662,8 @@ function odr_rruff_404_prehandler () {
         // IMA Data lookup - Mineral
         //
         case (bool)preg_match('/^\/ima\/./i', $current_uri):
+            odr_require_login_for_search();
+
             // Build Base64 URL for IMA
             // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
             $search_params = [];
@@ -559,6 +682,8 @@ function odr_rruff_404_prehandler () {
         //
         // TODO Should go to cached
         case (bool)preg_match('/^\/amcsd\/./i', $current_uri):
+            odr_require_login_for_search();
+
             // Build Base64 URL for AMCSD
             // odr/amcsd#/odr/search/display/2187/
             // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
@@ -605,6 +730,8 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/rruff$/i', $current_uri)
                 && !preg_match('/^\/rruff\/$/i', $current_uri)
             ) {
+                odr_require_login_for_search();
+
                 // Matches RRUFF IDs
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
