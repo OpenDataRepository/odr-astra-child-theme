@@ -24,6 +24,12 @@ function child_enqueue_styles() {
 }
 
 add_action( 'wp_enqueue_scripts', 'child_enqueue_styles', 15 );
+// Shortcut-search gate: allowed mineral names / RRUFF ids search immediately, anything else
+// asks an anonymous visitor for a reCAPTCHA first.  Settings live under Settings -> ODR Search Gate.
+require_once get_stylesheet_directory() . '/odr_search_gate.php';
+if ( is_admin() )
+    require_once get_stylesheet_directory() . '/odr_search_gate_admin.php';
+
 add_action( 'wp_enqueue_scripts', 'ODR_include_scripts', 95 );
 add_action( 'wp_enqueue_scripts', 'ODR_include_styles', 150 );
 
@@ -89,21 +95,28 @@ function odr_send_minimal_404() {
 
 /**
  * Serves a minimal 404 instead of running an ODR search, unless the visitor is
- * logged in or is a verified search engine crawler.
+ * logged in.
  *
  * Every mineral-name url handled below turns into an ODR search, which means
  * bots were triggering a database search for every url they felt like guessing
- * at.  Until anonymous visitors have some way to prove they're human, only
- * logged-in users get to spend a search this way -- plus the search engines,
- * so these urls stay indexed.
+ * at.  These searches are reserved for logged-in users, and eventually for
+ * anonymous visitors who have proven they're human -- but NOT for crawlers,
+ * however legitimate.  No bot gets to spend a search on a url it guessed at,
+ * so these routes do not take the $allow_crawlers exemption below.
  *
  * Call this at the point where a search redirect is about to be issued -- not
  * earlier -- so that real WordPress pages and ODR paths are unaffected.
+ *
+ * @param bool $allow_crawlers Lets verified search engine crawlers through.
+ *                             Off by default, and deliberately not used by the
+ *                             search routes...it's here for anything else that
+ *                             wants to tell a real crawler from a bot, via
+ *                             odr_identify_verified_crawler() below.
  */
-function odr_require_login_for_search() {
+function odr_require_login_for_search( $allow_crawlers = false ) {
     if ( is_user_logged_in() )
         return;
-    if ( odr_identify_verified_crawler() !== null )
+    if ( $allow_crawlers && odr_identify_verified_crawler() !== null )
         return;
 
     odr_send_minimal_404();
@@ -262,6 +275,12 @@ function odr_rruff_404_prehandler () {
             odr_send_minimal_404();
             break;
         case (bool)preg_match('/sitemap.xml/', $current_uri):
+            return false;
+            break;
+        // robots.txt isn't a file on disk -- WordPress generates it -- so without this the
+        // catch-all below treats it as a mineral name and the site ends up with no robots.txt
+        // at all.  Hand it back to WordPress.
+        case (bool)preg_match('#^/robots\.txt$#i', $current_uri):
             return false;
             break;
         // Elementor
@@ -662,7 +681,7 @@ function odr_rruff_404_prehandler () {
         // IMA Data lookup - Mineral
         //
         case (bool)preg_match('/^\/ima\/./i', $current_uri):
-            odr_require_login_for_search();
+            odr_search_gate( 'ima', strip_tags( urldecode( $request[count($request)-1] ) ) );
 
             // Build Base64 URL for IMA
             // {"dt_id":"736","7052":"actinolite","7062":"-1094,-1104"}
@@ -682,7 +701,7 @@ function odr_rruff_404_prehandler () {
         //
         // TODO Should go to cached
         case (bool)preg_match('/^\/amcsd\/./i', $current_uri):
-            odr_require_login_for_search();
+            odr_search_gate( 'amcsd', strip_tags( urldecode( $request[count($request)-1] ) ) );
 
             // Build Base64 URL for AMCSD
             // odr/amcsd#/odr/search/display/2187/
@@ -730,7 +749,7 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/rruff$/i', $current_uri)
                 && !preg_match('/^\/rruff\/$/i', $current_uri)
             ) {
-                odr_require_login_for_search();
+                odr_search_gate( 'root', strip_tags( urldecode( $request[count($request)-1] ) ) );
 
                 // Matches RRUFF IDs
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}

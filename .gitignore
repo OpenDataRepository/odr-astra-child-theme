@@ -1,1 +1,6 @@
 .idea
+
+# Search engine crawler IP ranges: generated on the ODR side with
+#   php app/console odr:crawler_ips:update --out=<this theme>/crawler_ips.php
+# Per-server and refreshed from upstream, so it isn't tracked.
+crawler_ips.php
