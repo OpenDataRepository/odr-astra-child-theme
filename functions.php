@@ -440,7 +440,10 @@ function odr_rruff_404_prehandler () {
 	//  to => https://med.rruff.net/MED/min_loc_details.php?mindat_id=27154&mineral_id=3216
         // /mineral_list/locality.php?locality_id=16209
         case (bool)preg_match('/^\/mineral_list\/MED\/min_loc_details.php/i', $current_uri):
-            odr_send_minimal_404();exit();
+            // Gated rather than retired: a logged-in user (or a verified crawler, when that's
+            // enabled) is passed through to the MED redirect below, anyone else gets a reCAPTCHA
+            // first.  'none' because the payload is a query string, not a searchable term.
+            odr_search_gate( 'none', '' );
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
@@ -450,7 +453,8 @@ function odr_rruff_404_prehandler () {
             break;
 
         case (bool)preg_match('/^\/mineral_list\/locality.php/i', $current_uri):
-            odr_send_minimal_404();exit();
+            // See above -- gated, not retired.
+            odr_search_gate( 'none', '' );
             if(!preg_match('/\/\?/', $current_uri)) {
                 parse_str($_SERVER['QUERY_STRING'], $queryArray);
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}

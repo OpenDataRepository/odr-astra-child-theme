@@ -635,6 +635,7 @@ function odr_sg_render_challenge( $uri, $term ) {
     $site_key = esc_attr( odr_sg_setting( 'recaptcha_site_key' ) );
     $action = esc_attr( $uri );
     $shown = esc_html( $term );
+    $has_term = ( trim( (string) $term ) !== '' );
     $nonce = esc_attr( wp_create_nonce( 'odr_sg_challenge' ) );
 
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
@@ -650,8 +651,11 @@ function odr_sg_render_challenge( $uri, $term ) {
        . 'button{font:inherit;padding:.5rem 1rem;margin-top:1rem;cursor:pointer}'
        . '</style></head><body><main>'
        . '<h1>Confirm you are human</h1>'
-       . '<p>Searching for <span class="q">' . $shown . '</span> needs a quick check first. '
-       . 'Automated traffic has been running large numbers of searches, so searches that aren\'t '
+       . '<p>'
+       . ( $has_term
+            ? 'Searching for <span class="q">' . $shown . '</span> needs a quick check first. '
+            : 'This page runs a database lookup, so it needs a quick check first. ' )
+       . 'Automated traffic has been running large numbers of searches, so lookups that aren\'t '
        . 'for a known mineral name or RRUFF ID are confirmed this way.</p>'
        . '<form method="post" action="' . $action . '">'
        . '<input type="hidden" name="odr_sg_recaptcha" value="1">'
@@ -674,8 +678,10 @@ function odr_sg_render_challenge( $uri, $term ) {
  * Returns normally when the search should go ahead; otherwise redirects, challenges, or serves the
  * minimal 404, and exits.
  *
- * @param string $route 'root', 'ima' or 'amcsd'
- * @param string $term The search term from the url
+ * @param string $route 'root', 'ima', 'amcsd', or 'none' for a url that carries no searchable
+ *                      term (the retired query-string endpoints), which therefore has no list to
+ *                      be on and always takes the crawler / ban / challenge path
+ * @param string $term The search term from the url, '' when the route has none
  */
 function odr_search_gate( $route, $term ) {
     // 1. logged in: nothing to check
@@ -687,8 +693,11 @@ function odr_search_gate( $route, $term ) {
     $uuid = null;
     $allowed = false;
 
-    if ( ! odr_sg_setting( 'use_name_lists' ) ) {
-        // nothing to match against...fall through to the crawler / ban / challenge steps
+    if ( $route === 'none' || ! odr_sg_setting( 'use_name_lists' ) ) {
+        // Nothing to match against, so fall through to the crawler / ban / challenge steps.
+        // 'none' is for urls whose payload is a query string rather than a search term: there is
+        // no name to check against a list, and checking the last path segment ("locality.php")
+        // would be meaningless at best and a false match at worst.
     }
     else if ( $route === 'amcsd' ) {
         $uuid = odr_sg_lookup( 'amcsd', $term );
