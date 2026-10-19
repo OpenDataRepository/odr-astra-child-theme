@@ -122,6 +122,31 @@ Fail a challenge on purpose and the same unlisted request should return a 216-by
 showing another challenge, while `/Abellaite` keeps working. That is the behaviour that keeps
 reCAPTCHA usage inside the free tier.
 
+## When a gated url behaves differently on one server
+
+Run the bundled diagnostic on the server in question:
+
+    php tools/odr_gate_check.php /path/to/wordpress <your-public-ip>
+
+It is read-only. The second argument is the address of the browser you are testing from, because
+the ban and pass markers are per visitor, not per server. It reports which theme is loaded, how
+many gate call sites `functions.php` actually has, every setting, the allowlist index, the crawler
+ranges, and whether that visitor is banned, recently passed, or a verified crawler.
+
+Reading the result:
+
+- **`gate loaded : NO`**, or a call-site count that doesn't match the deployed code, means the
+  running `functions.php` isn't the one on disk.
+- **Everything matches a working server, but the site still behaves like the old code** — reload
+  PHP-FPM. With `opcache.validate_timestamps=0` it serves previously compiled code until it is
+  cycled, and this script *cannot* see that, because the CLI has its own opcache separate from
+  FPM's. Worth adding an FPM reload to the deploy steps.
+- **`passed recently : YES`** for your address means the gate is correctly letting you through
+  because you passed a challenge inside the ban window. Test from a phone on cellular to see what
+  a first-time visitor gets.
+- **`allow_verified_crawlers : ON`** means anything inside those published ranges skips the
+  challenge by design, so don't test from a datacenter address that might fall in them.
+
 ## Notes
 
 - About 40% of the minerals on these lists have no cached static page. Those fall through to the
