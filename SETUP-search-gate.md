@@ -4,8 +4,12 @@ What to do on each server after deploying this theme. The gate controls the shor
 routes — `/<mineral>`, `/ima/<mineral>`, `/amcsd/<mineral>` — and needs two things configured
 before it can let anyone through: an **allowlist index**, and **reCAPTCHA keys**.
 
-Until both are in place, anonymous visitors get the minimal 404 on those routes, exactly as they
-did before the gate existed. That is the safe failure mode, not a broken one.
+Until reCAPTCHA keys are in place, anonymous visitors get the minimal 404 on those routes, exactly
+as they did before the gate existed. That is the safe failure mode, not a broken one.
+
+**On a site without the mineral name lists** (which is most of them) leave *Mineral name lists*
+off and stop after step 1: there is no index to build and no cron to schedule. The gate is then
+just logged-in users, verified crawlers if you enable them, and reCAPTCHA for everyone else.
 
 ## 1. Settings
 
@@ -13,6 +17,7 @@ did before the gate existed. That is the safe failure mode, not a broken one.
 
 | Field | What to put in it |
 | --- | --- |
+| Mineral name lists | **Off on every site except the mineral ones.** Off means the gate is login + verified crawlers + reCAPTCHA, nothing is indexed, no files are read, and steps 2 and 3 below don't apply. Everything from *ODR web directory* down is hidden while it's off. |
 | reCAPTCHA site key | From [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin). Must be **reCAPTCHA v2, "I'm not a robot" checkbox** — v3 keys will not work with this form. |
 | reCAPTCHA secret key | The other half of that pair. |
 | Verified crawlers | Leave off unless you want verified Google/Bing/DuckDuckGo crawlers to run searches that aren't on a list. |
@@ -50,7 +55,7 @@ trustworthy as the users who can write there.
 
 `var/tmp/` is gitignored in data-publisher, so the generated file never shows up in `git status`.
 
-## 2. Build the index once
+## 2. Build the index once *(name-list sites only)*
 
 Press **Rebuild index now** on the settings page. It should report something like
 `6,903 mineral names and 4,344 AMCSD names indexed.`
@@ -58,7 +63,7 @@ Press **Rebuild index now** on the settings page. It should report something lik
 If it reports a permission error, the index file location isn't writable by the webserver — set
 the **Index file** field to somewhere that is.
 
-## 3. Keep it rebuilt — hourly
+## 3. Keep it rebuilt — hourly *(name-list sites only)*
 
 The index is a snapshot of ODR's generated mineral name files. New minerals won't resolve until it
 is rebuilt, so this needs to run hourly. There are two ways, and **they are safe to use

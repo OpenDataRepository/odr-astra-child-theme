@@ -60,6 +60,7 @@ function odr_sg_sanitize_settings( $input ) {
 
     // a checkbox is simply absent when unticked, and this form always posts every checkbox's
     // hidden companion, so an absent key here means "off"
+    $clean['use_name_lists'] = empty( $input['use_name_lists'] ) ? 0 : 1;
     $clean['allow_verified_crawlers'] = empty( $input['allow_verified_crawlers'] ) ? 0 : 1;
 
     if ( isset( $input['block_seconds'] ) ) {
@@ -100,13 +101,23 @@ function odr_sg_settings_page() {
     <div class="wrap">
         <h1>ODR Search Gate</h1>
 
+        <?php $uses_lists = ! empty( $settings['use_name_lists'] ); ?>
+
         <p>
             Controls the shortcut search routes &mdash; <code>/&lt;mineral&gt;</code>,
-            <code>/ima/&lt;mineral&gt;</code> and <code>/amcsd/&lt;mineral&gt;</code>. Terms on the
-            allowed lists search immediately; anything else asks an anonymous visitor to pass a
-            reCAPTCHA first, and a visitor who fails is refused for a while.
+            <code>/ima/&lt;mineral&gt;</code> and <code>/amcsd/&lt;mineral&gt;</code>.
+            <?php if ( $uses_lists ) : ?>
+                Terms on the allowed lists search immediately; anything else asks an anonymous
+                visitor to pass a reCAPTCHA first, and a visitor who fails is refused for a while.
+            <?php else : ?>
+                An anonymous visitor is asked to pass a reCAPTCHA, and one who fails is refused for
+                a while. This site has no mineral name lists, so nothing is allowed through
+                un-challenged except logged-in users and &mdash; if enabled below &mdash; verified
+                search crawlers.
+            <?php endif; ?>
         </p>
 
+        <?php if ( $uses_lists ) : ?>
         <h2>Allowlist index</h2>
         <table class="widefat striped" style="max-width:52rem">
             <tbody>
@@ -172,10 +183,29 @@ function odr_sg_settings_page() {
             </p>
         </form>
 
+        <?php endif; /* $uses_lists */ ?>
+
         <h2>Settings</h2>
         <form method="post" action="options.php">
             <?php settings_fields( 'odr_sg_settings_group' ); ?>
             <table class="form-table" role="presentation">
+                <tr>
+                    <th scope="row">Mineral name lists</th>
+                    <td>
+                        <label>
+                            <input type="checkbox"
+                                   name="<?php echo ODR_SG_OPTION; ?>[use_name_lists]"
+                                   value="1" <?php checked( $uses_lists ); ?>>
+                            This site has lists of search terms that skip the challenge
+                        </label>
+                        <p class="description">
+                            Only the mineral sites have these. With this off, the gate is just
+                            logged-in users, verified crawlers and reCAPTCHA &mdash; no index is
+                            built, no files are read, and the settings for them are hidden.
+                            Save the page after changing this to see the rest.
+                        </p>
+                    </td>
+                </tr>
                 <tr>
                     <th scope="row"><label for="odr_sg_site_key">reCAPTCHA site key</label></th>
                     <td>
@@ -230,6 +260,7 @@ function odr_sg_settings_page() {
                         </p>
                     </td>
                 </tr>
+                <?php if ( $uses_lists ) : ?>
                 <tr>
                     <th scope="row"><label for="odr_sg_web_dir">ODR web directory</label></th>
                     <td>
@@ -284,6 +315,7 @@ function odr_sg_settings_page() {
                         </p>
                     </td>
                 </tr>
+                <?php endif; /* $uses_lists */ ?>
             </table>
             <?php submit_button(); ?>
         </form>
@@ -349,6 +381,9 @@ function odr_sg_admin_notices() {
            . 'gets a 404 rather than a chance to prove itself.'
            . '</p></div>';
     }
+
+    if ( ! odr_sg_setting( 'use_name_lists' ) )
+        return;
 
     $index = odr_sg_index();
     if ( empty( $index['built'] ) ) {

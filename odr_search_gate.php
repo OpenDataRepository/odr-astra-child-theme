@@ -60,6 +60,11 @@ define( 'ODR_SG_INDEX_BASENAME', 'odr-search-allowlist.php' );
  */
 function odr_sg_defaults() {
     return array(
+        // Whether this site has lists of search terms that are allowed through without a
+        // challenge.  Off by default: this theme runs on several sites and only the mineral ones
+        // have those lists, so everywhere else the gate is just login + crawlers + reCAPTCHA.
+        'use_name_lists' => 0,
+
         // from https://www.google.com/recaptcha/admin -- reCAPTCHA v2, "I'm not a robot"
         'recaptcha_site_key' => '',
         'recaptcha_secret' => '',
@@ -179,6 +184,9 @@ function odr_sg_index( $refresh = false ) {
  */
 function odr_sg_build_index( $source_dir = null, $out = null ) {
     if ( $source_dir === null ) {
+        if ( ! odr_sg_setting( 'use_name_lists' ) )
+            return 'name lists are turned off for this site';
+
         $web_dir = odr_sg_setting( 'odr_web_dir' );
         if ( empty( $web_dir ) )
             return 'no ODR web directory configured';
@@ -274,6 +282,9 @@ function odr_sg_build_index( $source_dir = null, $out = null ) {
  * @return bool
  */
 function odr_sg_index_is_stale( $source_dir = null ) {
+    if ( ! odr_sg_setting( 'use_name_lists' ) )
+        return false;
+
     if ( $source_dir === null ) {
         $web_dir = odr_sg_setting( 'odr_web_dir' );
         if ( empty( $web_dir ) )
@@ -671,11 +682,15 @@ function odr_search_gate( $route, $term ) {
     if ( is_user_logged_in() )
         return;
 
-    // 2. on an allowed list?
+    // 2. on an allowed list?  Only sites with the mineral name lists have anything to check,
+    //    and when that's off nothing here touches the index or the filesystem.
     $uuid = null;
     $allowed = false;
 
-    if ( $route === 'amcsd' ) {
+    if ( ! odr_sg_setting( 'use_name_lists' ) ) {
+        // nothing to match against...fall through to the crawler / ban / challenge steps
+    }
+    else if ( $route === 'amcsd' ) {
         $uuid = odr_sg_lookup( 'amcsd', $term );
         $allowed = ( $uuid !== null );
         // NOTE: the uuid on this list is an IMA mineral record, not an AMCSD one, so it is used
@@ -781,6 +796,13 @@ function odr_sg_schedule_rebuild() {
     if ( wp_next_scheduled( 'odr_sg_daily_rebuild' ) )
         wp_clear_scheduled_hook( 'odr_sg_daily_rebuild' );
 
+    // no name lists on this site means nothing to rebuild, so don't keep waking up for it
+    if ( ! odr_sg_setting( 'use_name_lists' ) ) {
+        if ( wp_next_scheduled( 'odr_sg_hourly_rebuild' ) )
+            wp_clear_scheduled_hook( 'odr_sg_hourly_rebuild' );
+        return;
+    }
+
     $next = wp_next_scheduled( 'odr_sg_hourly_rebuild' );
     if ( $next && wp_get_schedule( 'odr_sg_hourly_rebuild' ) !== 'hourly' ) {
         // recurrence changed under us
@@ -796,6 +818,9 @@ if ( function_exists( 'add_action' ) )
     add_action( 'odr_sg_hourly_rebuild', 'odr_sg_cron_rebuild' );
 
 function odr_sg_cron_rebuild() {
+    if ( ! odr_sg_setting( 'use_name_lists' ) )
+        return;
+
     // only rewrite the index when a source file has actually changed -- the rebuild is cheap, but
     // replacing the file every hour would needlessly invalidate it in opcache
     if ( ! odr_sg_index_is_stale() )
