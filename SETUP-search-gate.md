@@ -21,6 +21,7 @@ just logged-in users, verified crawlers if you enable them, and reCAPTCHA for ev
 | reCAPTCHA site key | From [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin). Must be **reCAPTCHA v2, "I'm not a robot" checkbox** — v3 keys will not work with this form. |
 | reCAPTCHA secret key | The other half of that pair. |
 | Verified crawlers | Leave off unless you want verified Google/Bing/DuckDuckGo crawlers to run searches that aren't on a list. |
+| Crawler IP file | ODR's own `<ODR>/var/crawler_ips.php`, e.g. `/home/rruff/data-publisher/var/crawler_ips.php`. Read in place, never copied into WordPress. The page shows how many ranges it found and when they were generated. See *Crawler ranges* below. |
 | Ban length | `7200` (two hours). Also how long a visitor who passes is trusted, so they aren't re-challenged on every search. |
 | ODR web directory | Absolute path of ODR's `web/` directory, e.g. `/home/rruff/data-publisher/web`. The page tells you whether it can see `uploads/IMA` and `uploads/static` underneath it. |
 | ODR url path | Where ODR is served on this site, e.g. `/odr_rruff`. Used to build cached-page links. |
@@ -104,6 +105,27 @@ run the cron as the user that owns it.
 
 To confirm it works, run the command by hand twice — the first run writes, the second says the
 index is current.
+
+### Crawler ranges
+
+The verified-crawler check needs the ranges Google, Bing and DuckDuckGo publish. ODR downloads
+them into its own `var/` directory; WordPress only reads that file.
+
+```bash
+cd /home/rruff/data-publisher
+php app/console odr:crawler_ips:update                   # this instance
+php app/console-all odr:crawler_ips:update               # every linked instance on the server
+php app/console odr:crawler_ips:update --check=66.249.66.1   # should report google
+```
+
+Refresh it weekly from cron:
+
+```cron
+0 4 * * 1  cd /home/rruff/data-publisher && php app/console-all odr:crawler_ips:update
+```
+
+The web server user has to be able to read the file (and pass through the directories above it).
+The settings page says so in red if it can't.
 
 ## 4. Check it
 

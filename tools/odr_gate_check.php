@@ -227,12 +227,18 @@ if (function_exists('odr_sg_index')) {
 }
 
 echo "\ncrawler ranges\n";
-$cf = $dir . '/crawler_ips.php';
-if (is_file($cf)) {
-    $d = include $cf;
-    printf("  file     : present, %d ipv4 + %d ipv6 prefixes\n", count($d['ipv4'] ?? array()), count($d['ipv6'] ?? array()));
-} else {
-    echo "  file     : MISSING (it is gitignored, so a deploy does not bring it)\n";
+$cf = (string) ($s['crawler_ip_file'] ?? '');
+printf("  setting  : %s\n", $cf !== '' ? $cf : '(not set -- Settings -> ODR Search Gate -> Crawler IP file)');
+if ($cf !== '' && function_exists('odr_crawler_ip_load')) {
+    $d = odr_crawler_ip_load($cf);
+    if ($d['error'] !== null) {
+        printf("  file     : PROBLEM -- %s\n", $d['error']);
+    } else {
+        printf("  file     : %d ipv4 + %d ipv6 prefixes, generated %s\n",
+            count($d['data']['ipv4']), count($d['data']['ipv6']), $d['data']['generated'] ?? 'unknown');
+        // this runs as whoever started it, not as the web server
+        echo "             (readable by this shell user -- check the settings page to confirm the web server can read it too)\n";
+    }
 }
 
 if ($odr_ip !== '') {

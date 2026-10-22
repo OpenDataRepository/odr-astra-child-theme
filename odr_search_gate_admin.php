@@ -73,6 +73,10 @@ function odr_sg_sanitize_settings( $input ) {
         $clean['odr_web_dir'] = $directory;
     }
 
+    if ( isset( $input['crawler_ip_file'] ) ) {
+        $clean['crawler_ip_file'] = trim( sanitize_text_field( $input['crawler_ip_file'] ) );
+    }
+
     if ( isset( $input['index_path'] ) ) {
         $clean['index_path'] = rtrim( trim( sanitize_text_field( $input['index_path'] ) ), '/' );
     }
@@ -241,9 +245,48 @@ function odr_sg_settings_page() {
                             Let verified Google, Bing and DuckDuckGo crawlers run unlisted searches
                         </label>
                         <p class="description">
-                            Checked by address against the published crawler ranges in
-                            <code>crawler_ips.php</code>, never by user agent. Off by default: a crawler
-                            guessing urls is still a bot spending a search.
+                            Checked by address against the published crawler ranges in the file below,
+                            never by user agent. Off by default: a crawler guessing urls is still a bot
+                            spending a search.
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><label for="odr_sg_crawler_ip_file">Crawler IP file</label></th>
+                    <td>
+                        <?php
+                        // suggest the file next to the ODR install this site already points at
+                        $suggested = '/path/to/data-publisher/var/crawler_ips.php';
+                        if ( $settings['odr_web_dir'] !== '' )
+                            $suggested = dirname( $settings['odr_web_dir'] ) . '/var/crawler_ips.php';
+                        ?>
+                        <input type="text" class="large-text code" id="odr_sg_crawler_ip_file"
+                               name="<?php echo ODR_SG_OPTION; ?>[crawler_ip_file]"
+                               value="<?php echo esc_attr( $settings['crawler_ip_file'] ); ?>"
+                               placeholder="<?php echo esc_attr( $suggested ); ?>">
+                        <p class="description">
+                            <?php
+                            if ( $settings['crawler_ip_file'] === '' ) {
+                                echo 'Not set, so no crawler is recognised. ';
+                            }
+                            else if ( function_exists( 'odr_crawler_ip_load' ) ) {
+                                $crawlers = odr_crawler_ip_load( $settings['crawler_ip_file'] );
+                                if ( $crawlers['error'] !== null ) {
+                                    echo '<span style="color:#b32d2e">' . esc_html( ucfirst( $crawlers['error'] ) ) . '.</span> ';
+                                }
+                                else {
+                                    printf(
+                                        'Found: %s IPv4 + %s IPv6 ranges, generated %s. ',
+                                        number_format( count( $crawlers['data']['ipv4'] ) ),
+                                        number_format( count( $crawlers['data']['ipv6'] ) ),
+                                        esc_html( isset( $crawlers['data']['generated'] ) ? $crawlers['data']['generated'] : 'unknown' )
+                                    );
+                                }
+                            }
+                            ?>
+                            ODR&rsquo;s own copy, in its <code>var/</code> directory &mdash; written by
+                            <code>php app/console odr:crawler_ips:update</code> in the ODR install, which
+                            should run weekly from cron. The web server user needs read access to it.
                         </p>
                     </td>
                 </tr>

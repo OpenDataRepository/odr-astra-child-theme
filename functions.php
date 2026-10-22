@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.9' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.10' );
 
 /**
  * Enqueue styles
@@ -126,9 +126,10 @@ function odr_require_login_for_search( $allow_crawlers = false ) {
  * Returns 'google', 'bing', or 'duckduckgo' when the request comes from an IP
  * address that search engine publishes for its crawlers, and null otherwise.
  *
- * The ranges live in crawler_ips.php, which is generated on the ODR side by
- * `php app/console odr:crawler_ips:update --out=<this theme>/crawler_ips.php`.
- * Nothing is downloaded while serving a request.
+ * The ranges live in ODR's own var/crawler_ips.php, generated there by
+ * `php app/console odr:crawler_ips:update`, and read from the path set under
+ * Settings -> ODR Search Gate -> Crawler IP file.  Nothing is downloaded while
+ * serving a request, and nothing is copied into WordPress.
  *
  * NOTE: never identify a crawler by its user agent.  That's a single header
  * and trivially forged -- it's exactly what the bots being blocked are doing.
@@ -203,22 +204,40 @@ function odr_crawler_ip_data() {
     if ( $data !== null )
         return $data;
 
-    $data = array( 'ipv4' => array(), 'ipv6' => array() );
-
-    $file = get_stylesheet_directory() . '/crawler_ips.php';
-    if ( ! file_exists( $file ) ) {
-        error_log( 'odr_crawler_ip_data: no crawler ip file at ' . $file . ', so no crawler will be recognized' );
+    $file = function_exists( 'odr_sg_setting' ) ? (string)odr_sg_setting( 'crawler_ip_file' ) : '';
+    $loaded = odr_crawler_ip_load( $file );
+    if ( $loaded['error'] !== null ) {
+        error_log( 'odr_crawler_ip_data: ' . $loaded['error'] . ', so no crawler will be recognized' );
+        $data = array( 'ipv4' => array(), 'ipv6' => array() );
         return $data;
     }
+
+    $data = $loaded['data'];
+    return $data;
+}
+
+/**
+ * Reads one crawler range file, saying plainly what's wrong with it if it can't be used.  Shared
+ * by the gate, its settings page, and tools/odr_gate_check.php.
+ *
+ * @param string $file Absolute path, normally <ODR install>/var/crawler_ips.php
+ *
+ * @return array 'data' => the ranges or null, 'error' => why not, or null
+ */
+function odr_crawler_ip_load( $file ) {
+    $file = (string)$file;
+    if ( $file === '' )
+        return array( 'data' => null, 'error' => 'no crawler IP file is set (Settings -> ODR Search Gate)' );
+    if ( ! file_exists( $file ) )
+        return array( 'data' => null, 'error' => 'there is no crawler IP file at ' . $file );
+    if ( ! is_readable( $file ) )
+        return array( 'data' => null, 'error' => 'the web server can\'t read the crawler IP file at ' . $file );
 
     $loaded = include $file;
-    if ( ! is_array( $loaded ) || ! isset( $loaded['ipv4'] ) || ! isset( $loaded['ipv6'] ) ) {
-        error_log( 'odr_crawler_ip_data: the crawler ip file at ' . $file . ' is malformed' );
-        return $data;
-    }
+    if ( ! is_array( $loaded ) || ! isset( $loaded['ipv4'] ) || ! isset( $loaded['ipv6'] ) )
+        return array( 'data' => null, 'error' => 'the crawler IP file at ' . $file . ' is malformed' );
 
-    $data = $loaded;
-    return $data;
+    return array( 'data' => $loaded, 'error' => null );
 }
 
 /**

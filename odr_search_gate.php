@@ -75,6 +75,12 @@ function odr_sg_defaults() {
         // Off by default: a crawler guessing urls is still a bot spending a search.
         'allow_verified_crawlers' => 0,
 
+        // absolute path of ODR's generated crawler ranges, e.g.
+        // /home/rruff/data-publisher/var/crawler_ips.php -- written there by
+        // `php app/console odr:crawler_ips:update`, and read in place rather than copied into
+        // WordPress.  Blank means no crawler is recognised.
+        'crawler_ip_file' => '',
+
         // how long a failed client is refused, and how long a passing client is trusted
         'block_seconds' => 7200,
 
