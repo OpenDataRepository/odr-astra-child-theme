@@ -15,6 +15,8 @@
  *                                       name files; RRUFF ids are matched by pattern.  Where the
  *                                       list gives a record uuid and that record has a cached
  *                                       static page, the visitor is sent straight to it.
+ *                                       The url must be the name or id and nothing else: any
+ *                                       query string skips this step.
  *   3. Verified search crawler       -> search runs, but only when that toggle is on.
  *   4. Already failed a challenge    -> minimal 404 for the ban duration, no challenge shown.
  *   5. Anything else                 -> reCAPTCHA.  Pass and the search runs (and keeps running
@@ -424,6 +426,18 @@ function odr_sg_is_rruff_id( $term ) {
     return (bool)preg_match( '/^R\d{6}$/i', trim( (string)$term ) );
 }
 
+/**
+ * Whether the request url carries a query string, including a bare trailing "?".
+ *
+ * Checks REQUEST_URI rather than QUERY_STRING, which is empty for "/Bustamite?".
+ *
+ * @return bool
+ */
+function odr_sg_uri_has_query() {
+    $uri = isset( $_SERVER['REQUEST_URI'] ) ? (string)$_SERVER['REQUEST_URI'] : '';
+    return strpos( $uri, '?' ) !== false;
+}
+
 
 /* ---------------------------------------------------------------------- cached pages ----- */
 
@@ -698,6 +712,12 @@ function odr_search_gate( $route, $term ) {
         // 'none' is for urls whose payload is a query string rather than a search term: there is
         // no name to check against a list, and checking the last path segment ("locality.php")
         // would be meaningless at best and a false match at worst.
+    }
+    else if ( odr_sg_uri_has_query() || $term !== trim( (string)$term ) ) {
+        // The list only vouches for the bare name or id.  Bots were sending an allowed name with
+        // a payload of their own behind it (/Bustamite?sample_child_id=...&sample_id=...), so
+        // anything more than exactly the name -- a query string, even an empty one, or
+        // surrounding whitespace -- takes the challenge like any other unlisted search.
     }
     else if ( $route === 'amcsd' ) {
         $uuid = odr_sg_lookup( 'amcsd', $term );
