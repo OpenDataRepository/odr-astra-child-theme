@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.15' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.17' );
 
 /**
  * Enqueue styles
@@ -273,14 +273,26 @@ function odr_uri_is_wordpress_content($current_uri) {
     return false;
 }
 
+/**
+ * Whether this WordPress install is one of the RRUFF sites.
+ *
+ * Asks which site this is (its own home url), not which host the visitor typed: old domains such
+ * as rruff.info are served by the same install, and SERVER_NAME follows the request's Host header,
+ * so a check on that let those requests skip the RRUFF routing and the search gate entirely.
+ *
+ * @return bool
+ */
+function odr_is_rruff_site() {
+    $host = strtolower( (string)parse_url( home_url(), PHP_URL_HOST ) );
+    return in_array( $host, array( 'rruff.net', 'www.rruff.net', 'dev.rruff.net', 'beta.rruff.net' ), true );
+}
+
 function odr_rruff_404_prehandler () {
     global $wp_query;
     $current_uri = $_SERVER['REQUEST_URI'];
 
-    if(!preg_match('/rruff\.net/', $_SERVER['SERVER_NAME']) &&  
-       !preg_match('/dev.rruff\.net/', $_SERVER['SERVER_NAME']) &&
-       !preg_match('/beta.rruff\.net/', $_SERVER['SERVER_NAME'])) {
-        // Do not prehandle 404s on sites other than RRUFF.net
+    // Do not prehandle 404s on sites other than RRUFF.net
+    if ( ! odr_is_rruff_site() ) {
         return false;
     }
 
@@ -338,25 +350,34 @@ function odr_rruff_404_prehandler () {
 	    //
 	    // /constructor.php?r=sample_search&new_sample_search=1&txt_mineral=Betalomonosovite
 	    //
-        case (bool)preg_match('/constructor.php/i', $current_uri):
-        case (bool)preg_match('/^\/rruff\/new_rruff\/constructor.php/i', $current_uri):
-            if(!preg_match('/\/\?/', $current_uri)) {
-                parse_str($_SERVER['QUERY_STRING'], $queryArray);
-                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
-                $search_params = [];
-                $search_params['dt_id'] = 738;
-                // $search_params['7052'] = $queryArray['txt_mineral'];
-                $search_params['7052'] =  strip_tags(urldecode($queryArray['txt_mineral']));;
-                $search_params['sort_by'] = [[
-                    "sort_df_id" => "7052",
-                    "sort_dir" => "asc"
-                ]];
-                $search_query = base64_encode(json_encode($search_params));
-                $search_query = preg_replace('/\=+$/', '', $search_query);
-                $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;
-                // print 'DD' .  $current_uri;exit();
-                wp_redirect($baseurl); exit();
+        // Old RRUFF search links, /constructor.php?...&txt_mineral=<name>&... in any order.  Other
+        // sites still link to these, sometimes with junk glued on, e.g.
+        //   txt_mineral=Potassic-ferro-ferri-taramite$https://www.mineralienatlas.de/wiki/...
+        // Only valid at the very start of the url.  With a mineral name it's gated like any
+        // unlisted search -- logged-in users and verified crawlers straight through, everyone else
+        // challenged -- and then moved permanently to /<name>, where the root route searches it.
+        // No usable name is a 404.
+        case (bool)preg_match('#^/constructor\.php(\?|$)#i', $current_uri):
+            parse_str((string)parse_url($current_uri, PHP_URL_QUERY), $queryArray);
+            $constructor_mineral = (isset($queryArray['txt_mineral']) && is_string($queryArray['txt_mineral']))
+                ? trim(strip_tags($queryArray['txt_mineral'])) : '';
+            // keep the name, drop anything glued on after it ($, ?, /, & and the like never
+            // appear in a mineral name)
+            $constructor_mineral = preg_match('#^[^$?/&\#\\\\<>"]+#u', $constructor_mineral, $constructor_match)
+                ? trim($constructor_match[0]) : '';
+            if ($constructor_mineral === '') {
+                odr_send_minimal_404();
             }
+
+            odr_search_gate( 'none', $constructor_mineral );
+
+            wp_redirect('/' . rawurlencode($constructor_mineral), 301);
+            exit();
+
+        // constructor.php anywhere else (/rruff/new_rruff/constructor.php, /foo/constructor.php,
+        // ...?x=constructor.php) is no good
+        case (bool)preg_match('/constructor\.php/i', $current_uri):
+            odr_send_minimal_404();
             break;
 
 
