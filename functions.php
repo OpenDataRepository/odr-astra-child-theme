@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.10' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.15' );
 
 /**
  * Enqueue styles
@@ -302,6 +302,12 @@ function odr_rruff_404_prehandler () {
         case (bool)preg_match('#^/robots\.txt$#i', $current_uri):
             return false;
             break;
+        // Same for /favicon.ico: WordPress answers it with the site icon (do_favicon), and without
+        // this every browser's favicon request was a search for the mineral "favicon.ico" -- and
+        // got the reCAPTCHA challenge.
+        case (bool)preg_match('#^/favicon\.ico(\?|$)#i', $current_uri):
+            return false;
+            break;
         // Elementor
         // ?elementor-preview=14&ver=1758215529&preview-debug
         // ?page_id=100&elementor-preview=100&ver=1758821415
@@ -362,30 +368,15 @@ function odr_rruff_404_prehandler () {
         // /mineral_list/MED/min_loc_details.php?mineral_id=4396&mindat_id=3182
         // /mineral_list/MED/min_loc_details.php?mineral_id=2144&mindat_id=23935
 
-        case (bool)preg_match('/^\/r\/[RXD]\d+/i', $current_uri):
-        case (bool)preg_match('/^\/export\d+\/[RXD]\d+/i', $current_uri):
-            if(!preg_match('/\/\?/', $current_uri)) {
-                $queryArray = preg_split('/\//', $current_uri);
-                // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
-                $search_params = [];
-                $search_params['dt_id'] = 738;
+        // /r/<anything> isn't a RRUFF url -- refuse it cheaply rather than search or challenge.
+        // (Without this, /r/<id> fell into the catch-all and searched on its last segment.)
+        case (bool)preg_match('/^\/r\//i', $current_uri):
+            odr_send_minimal_404();
+            break;
 
-                $search_params['7069'] =  '';
-                for($i=2; $i<count($queryArray); $i++){
-                    if(preg_match("/[RXD]\d+$/",$queryArray[$i])) {
-                        $search_params['7069'] .= $queryArray[$i] . ', ';
-                    }
-                }
-                // remove trailing comma
-                if(preg_match("/, $/", $search_params['7069'])) {
-                    $search_params['7069'] = substr($search_params['7069'], 0, -2);
-                }
-                $search_query = base64_encode(json_encode($search_params));
-                $search_query = preg_replace('/\=+$/', '', $search_query);
-                $baseurl = '/odr/rruff#/odr/search/display/0/' . $search_query;
-                // print 'EE' .  $current_uri;exit();
-                wp_redirect($baseurl); exit();
-            }
+        // /export<n>/<id> isn't a valid url: a RRUFF id is only searched at the root, /<id>
+        case (bool)preg_match('/^\/export\d+\//i', $current_uri):
+            odr_send_minimal_404();
             break;
 
 	    // {"dt_id":"738","7052":"anorthite","7069":"R040059, R040059, R070510, R130296, R060082"}
@@ -744,6 +735,14 @@ function odr_rruff_404_prehandler () {
 	    // http://rruff.net/repository/sample_child_record_powder/by_minerals/Awaruite__R061020-1__Powder__DIF_File__7990.txt
 	    // /all/source/asc/R090018
 
+        // A single path segment that looks like a file (/apple-touch-icon.png, /ads.txt, /foo.php)
+        // is a missing file, not a mineral -- no mineral name or RRUFF ID has a file extension.
+        // A cheap 404 instead of a search or a challenge.  NOTE: kept just above the catch-all so
+        // the specific routes above (/constructor.php, /index.php?...) still get their turn.
+        case (bool)preg_match('#^/[^/?]+\.(ico|png|jpe?g|gif|svg|webp|css|js|map|txt|xml|json|php|html?|woff2?|ttf|eot)(\?|$)#i', $current_uri):
+            odr_send_minimal_404();
+            break;
+
         // RRUFF - Mineral or RRUFF ID Search
         // These should go to cached
         case (bool)preg_match('/^\/./i', $current_uri):
@@ -772,36 +771,52 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/rruff$/i', $current_uri)
                 && !preg_match('/^\/rruff\/$/i', $current_uri)
             ) {
-                odr_search_gate( 'root', strip_tags( urldecode( $request[count($request)-1] ) ) );
+                // Only /<mineral name> or /<RRUFF id> -- one segment, at the root -- is a search.
+                // Anything deeper (/foo/Bustamite) used to search on its last segment; now it's a
+                // cheap 404.  The term comes from the path, so a query string can't leak into it.
+                $root_path = (string)parse_url($current_uri, PHP_URL_PATH);
+                if (!preg_match('#^/([^/]+)/?$#', $root_path, $root_match)) {
+                    odr_send_minimal_404();
+                }
+                // A query string is never part of a valid search here -- discard the request
+                // outright rather than spend a challenge on it.  (The bot flood is all
+                // /<mineral>?sample_child_id=...)
+                if (strpos($current_uri, '?') !== false) {
+                    odr_send_minimal_404();
+                }
+                $root_term = strip_tags(urldecode($root_match[1]));
 
-                // Matches RRUFF IDs
+                odr_search_gate( 'root', $root_term );
+
+                // Past the gate: an allowlisted term, a logged-in user, or someone who passed the
+                // challenge.  Always a RRUFF sample search -- never a cached page.
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 738;
-                $mineral_id = strip_tags(urldecode($request[count($request)-1]));
+                $mineral_id = $root_term;
                 if(preg_match('/^[rdx]+\d+$/i', $mineral_id)) {
-                    // RRUFF ID
+                    // RRUFF ID -> the RRUFF ID field
                     $search_params['7069'] = $mineral_id;
                     $search_params['sort_by'] = [[
                         "sort_df_id" => "7069",
                         "sort_dir" => "asc"
                     ]];
-                } else {
-                    // MINERAL Name
+                } else if(function_exists('odr_sg_lookup') && odr_sg_lookup('minerals', $mineral_id) !== null) {
+                    // a known mineral name -> exact match on the Mineral Name field
                     $search_params['7052'] = '"' . $mineral_id . '"';
+                    $search_params['sort_by'] = [[
+                        "sort_df_id" => "7052",
+                        "sort_dir" => "asc"
+                    ]];
+                } else {
+                    // anything else -> the general search field
+                    $search_params['gen'] = $mineral_id;
                     $search_params['sort_by'] = [[
                         "sort_df_id" => "7052",
                         "sort_dir" => "asc"
                     ]];
                 }
 
-		        // There could be query parameters
-		        // /Bustamite?sample_child_id=2197&sample_child_record_raman_id=162%2C163%2C164%2C165%2FR060889&sample_id=14%2FR140465%2FR060994%2FR060886%2FR060888%2FR060953%2FR060654%2FR060808
-                // parse_str($_SERVER['QUERY_STRING'], $queryArray);
-		        // if(isset($queryArray['sample_id'])) {
-			        // // print urldecode($queryArray['sample_id']);exit();
-		        // }
-		
                 $search_query = base64_encode(json_encode($search_params));
                 $search_query = preg_replace('/\=+$/', '', $search_query);
                 $baseurl = '/odr/rruff_sample#/odr/search/display/0/' . $search_query;

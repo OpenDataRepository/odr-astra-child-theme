@@ -763,6 +763,11 @@ function odr_search_gate( $route, $term ) {
             // no uuid to redirect to for a RRUFF id, but the search itself is fine
             $allowed = true;
         }
+
+        // The root route is a RRUFF sample search, and the uuids on this list are IMA mineral
+        //  records -- a cached IMA page is the wrong destination there.  Only /ima/ uses them.
+        if ( $route === 'root' )
+            $uuid = null;
     }
 
     if ( $allowed ) {
