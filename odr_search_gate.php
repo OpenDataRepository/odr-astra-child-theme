@@ -438,6 +438,25 @@ function odr_sg_uri_has_query() {
     return strpos( $uri, '?' ) !== false;
 }
 
+/**
+ * Records what the gate decided, where the apache access log can pick it up.
+ *
+ * Sent as an X-ODR-Gate response header, which apache can log with %{X-ODR-Gate}o under both
+ * mod_php and PHP-FPM.  Under mod_php it's also an apache note, for %{odr_gate}n.
+ *
+ * Values: logged-in, allowlist, allowlist-cached, crawler, passed-earlier, solved, challenge,
+ * challenge-stale-form, challenge-google-unreachable, banned, failed-now-banned,
+ * no-recaptcha-keys.
+ *
+ * @param string $outcome
+ */
+function odr_sg_log_outcome( $outcome ) {
+    if ( ! headers_sent() )
+        header( 'X-ODR-Gate: ' . $outcome );
+    if ( function_exists( 'apache_note' ) )
+        apache_note( 'odr_gate', $outcome );
+}
+
 
 /* ---------------------------------------------------------------------- cached pages ----- */
 
@@ -639,7 +658,9 @@ function odr_sg_verify_recaptcha( $token ) {
  */
 function odr_sg_render_challenge( $uri, $term ) {
     if ( ! headers_sent() ) {
-        status_header( 200 );
+        // 403 rather than 200, so a challenge can be told apart from a real page in the access
+        // log.  Browsers render the body the same either way (Cloudflare's challenges do this too).
+        status_header( 403 );
         nocache_headers();
         header( 'Content-Type: text/html; charset=utf-8' );
         // the challenge itself has nothing worth indexing
@@ -699,8 +720,10 @@ function odr_sg_render_challenge( $uri, $term ) {
  */
 function odr_search_gate( $route, $term ) {
     // 1. logged in: nothing to check
-    if ( is_user_logged_in() )
+    if ( is_user_logged_in() ) {
+        odr_sg_log_outcome( 'logged-in' );
         return;
+    }
 
     // 2. on an allowed list?  Only sites with the mineral name lists have anything to check,
     //    and when that's off nothing here touches the index or the filesystem.
@@ -744,31 +767,40 @@ function odr_search_gate( $route, $term ) {
             if ( $cached !== null ) {
                 // a logged-in visitor gets bounced on to the live record by the cached page
                 // itself, so this is safe for everyone
+                odr_sg_log_outcome( 'allowlist-cached' );
                 wp_redirect( $cached, 302 );
                 exit;
             }
         }
 
+        odr_sg_log_outcome( 'allowlist' );
         return;
     }
 
     // 3. a verified crawler, if we're letting them through
     if ( odr_sg_setting( 'allow_verified_crawlers' ) && function_exists( 'odr_identify_verified_crawler' ) ) {
-        if ( odr_identify_verified_crawler() !== null )
+        if ( odr_identify_verified_crawler() !== null ) {
+            odr_sg_log_outcome( 'crawler' );
             return;
+        }
     }
 
     // 4. already banned, or already proved themselves
-    if ( odr_sg_is_blocked() )
+    if ( odr_sg_is_blocked() ) {
+        odr_sg_log_outcome( 'banned' );
         odr_send_minimal_404();
+    }
 
-    if ( odr_sg_has_passed() )
+    if ( odr_sg_has_passed() ) {
+        odr_sg_log_outcome( 'passed-earlier' );
         return;
+    }
 
     // 5. the challenge
     if ( ! odr_sg_recaptcha_ready() ) {
         // nothing to challenge with, so behave as the route did before this existed
         error_log( 'odr_search_gate: reCAPTCHA is not configured, refusing an unlisted search' );
+        odr_sg_log_outcome( 'no-recaptcha-keys' );
         odr_send_minimal_404();
     }
 
@@ -778,6 +810,7 @@ function odr_search_gate( $route, $term ) {
         $nonce = isset( $_POST['odr_sg_nonce'] ) ? $_POST['odr_sg_nonce'] : '';
         if ( ! wp_verify_nonce( $nonce, 'odr_sg_challenge' ) ) {
             // a stale form, not a bot: ask again rather than banning
+            odr_sg_log_outcome( 'challenge-stale-form' );
             odr_sg_render_challenge( $uri, $term );
         }
 
@@ -786,17 +819,22 @@ function odr_search_gate( $route, $term ) {
 
         if ( $verdict === true ) {
             odr_sg_mark_passed();
+            odr_sg_log_outcome( 'solved' );
             return;
         }
 
         if ( $verdict === null ) {
             // couldn't reach google -- don't ban someone for our own outage
+            odr_sg_log_outcome( 'challenge-google-unreachable' );
             odr_sg_render_challenge( $uri, $term );
         }
 
         odr_sg_block_client();
+        odr_sg_log_outcome( 'failed-now-banned' );
         odr_send_minimal_404();
     }
+
+    odr_sg_log_outcome( 'challenge' );
 
     odr_sg_render_challenge( $uri, $term );
 }

@@ -10,7 +10,10 @@
  * usual answer is that PHP-FPM is still serving a previously compiled functions.php, which this
  * script cannot see -- read the note it prints at the end.
  *
- *   php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host]
+ *   php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host] [--with-plugins]
+ *
+ * Plugins aren't loaded unless --with-plugins is given: nothing checked here needs them, and some
+ * don't survive being loaded from the command line.
  *
  * The ip is the address of the browser you're testing from (whatismyip), because the ban and
  * pass markers are keyed per visitor -- not the server's own address.
@@ -29,12 +32,14 @@ if ( PHP_SAPI !== 'cli' ) {
     exit;
 }
 
-$odr_wp_root = $argv[1] ?? '';
-$odr_ip = $argv[2] ?? '';
-$odr_host = $argv[3] ?? '';
+// positional arguments, with any --option left out wherever it appears
+$odr_args = array_values(array_filter(array_slice($argv, 1), function ($a) { return strpos($a, '--') !== 0; }));
+$odr_wp_root = $odr_args[0] ?? '';
+$odr_ip = $odr_args[1] ?? '';
+$odr_host = $odr_args[2] ?? '';
 
 if ($odr_wp_root === '' || !is_file(rtrim($odr_wp_root, '/') . '/wp-load.php')) {
-    fwrite(STDERR, "usage: php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host]\n");
+    fwrite(STDERR, "usage: php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host] [--with-plugins]\n");
     exit(1);
 }
 
@@ -122,6 +127,17 @@ $wp_filter = array(
     'wp_loaded'             => $odr_crumb('[wp_loaded]') + $odr_watch('wp_loaded'),
 );
 
+// Everything this checks lives in the theme, so leave plugins out of this run (it changes nothing
+// stored -- they're only hidden from this one process).  Some plugins don't survive a CLI load:
+// Spectra's templates library exits on wp_loaded when its WP_Filesystem() write check fails
+// for a user that doesn't own the files.  Pass --with-plugins to load them anyway.
+$odr_with_plugins = in_array('--with-plugins', $argv, true);
+if (!$odr_with_plugins) {
+    $odr_no_plugins = array(10 => array(array('function' => function () { return array(); }, 'accepted_args' => 1)));
+    $wp_filter['option_active_plugins'] = $odr_no_plugins;
+    $wp_filter['site_option_active_sitewide_plugins'] = $odr_no_plugins;
+}
+
 $odr_loaded = false;
 register_shutdown_function(function () use (&$odr_loaded, $odr_host) {
     if ($odr_loaded)
@@ -185,6 +201,7 @@ printf("  active theme : %s\n", get_stylesheet());
 printf("  version      : %s\n", wp_get_theme()->get('Version'));
 printf("  gate loaded  : %s\n", function_exists('odr_search_gate') ? 'yes' : 'NO  <-- functions.php is not the deployed version');
 printf("  crawler fn   : %s\n", function_exists('odr_identify_verified_crawler') ? 'yes' : 'no');
+printf("  plugins      : %s\n", $odr_with_plugins ? 'loaded (--with-plugins)' : 'not loaded for this check (not needed; add --with-plugins to load them)');
 
 $dir = get_stylesheet_directory();
 printf("  functions.php: %d gate call sites, mtime %s\n",
