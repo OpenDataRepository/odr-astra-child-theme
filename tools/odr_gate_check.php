@@ -10,7 +10,7 @@
  * usual answer is that PHP-FPM is still serving a previously compiled functions.php, which this
  * script cannot see -- read the note it prints at the end.
  *
- *   php tools/odr_gate_check.php /path/to/wordpress [visitor-ip]
+ *   php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host]
  *
  * The ip is the address of the browser you're testing from (whatismyip), because the ban and
  * pass markers are keyed per visitor -- not the server's own address.
@@ -31,14 +31,56 @@ if ( PHP_SAPI !== 'cli' ) {
 
 $odr_wp_root = $argv[1] ?? '';
 $odr_ip = $argv[2] ?? '';
+$odr_host = $argv[3] ?? '';
 
 if ($odr_wp_root === '' || !is_file(rtrim($odr_wp_root, '/') . '/wp-load.php')) {
-    fwrite(STDERR, "usage: php tools/odr_gate_check.php /path/to/wordpress [visitor-ip]\n");
+    fwrite(STDERR, "usage: php tools/odr_gate_check.php /path/to/wordpress [visitor-ip] [site-host]\n");
     exit(1);
+}
+
+// Loading WordPress outside a web request can end the script without a word: a fatal error when
+// the CLI's display_errors is off, or a wp-config / plugin redirect (force-https, multisite site
+// lookup, security plugins) that exits because there's no host.  Make both of those visible.
+ini_set('display_errors', 'stderr');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
+
+$odr_loaded = false;
+register_shutdown_function(function () use (&$odr_loaded, $odr_host) {
+    if ($odr_loaded)
+        return;
+    $e = error_get_last();
+    fwrite(STDERR, "\nStopped while loading WordPress, before any checks ran.\n");
+    if ($e !== null && in_array($e['type'], array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR), true)) {
+        fwrite(STDERR, sprintf("  fatal error: %s\n  in %s:%d\n", $e['message'], $e['file'], $e['line']));
+    } else {
+        fwrite(STDERR, "  No fatal error, so something called exit() -- usually a redirect in wp-config.php\n");
+        fwrite(STDERR, "  or a plugin that expects a web request.\n");
+        if ($odr_host === '')
+            fwrite(STDERR, "  Try again with the site's host name as the third argument, e.g. rruff.net\n");
+    }
+});
+
+// What a web request would have, so host-dependent code takes the same path it does for a visitor
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['REQUEST_URI'] = '/';
+$_SERVER['HTTPS'] = 'on';
+$_SERVER['SERVER_PORT'] = 443;
+if ($odr_host !== '') {
+    $_SERVER['HTTP_HOST'] = $odr_host;
+    $_SERVER['SERVER_NAME'] = $odr_host;
 }
 
 define('WP_USE_THEMES', false);
 require rtrim($odr_wp_root, '/') . '/wp-load.php';
+$odr_loaded = true;
+
+// A page-cache plugin may have opened an output buffer that never gets flushed outside a web
+// request...close them so this report actually prints, keeping anything they'd caught
+while (ob_get_level() > 0) {
+    $caught = ob_get_clean();
+    if (trim((string) $caught) !== '')
+        fwrite(STDERR, "(output from WordPress while loading:)\n" . $caught . "\n");
+}
 
 echo "theme\n";
 printf("  active theme : %s\n", get_stylesheet());
