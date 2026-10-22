@@ -44,6 +44,30 @@ if ($odr_wp_root === '' || !is_file(rtrim($odr_wp_root, '/') . '/wp-load.php')) 
 ini_set('display_errors', 'stderr');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING);
 
+// Breadcrumbs, so an early stop can say how far loading got.  WordPress accepts hooks registered
+// in $wp_filter before it loads, which is the only way to watch its own bootstrap from outside.
+$odr_trace = array();
+$odr_crumb = function ($label) {
+    return array(10 => array(array(
+        'function' => function ($arg = null) use ($label) {
+            $GLOBALS['odr_trace'][] = (is_string($arg) && $arg !== '') ? $label . ' ' . $arg : $label;
+            return $arg;
+        },
+        'accepted_args' => 1,
+    )));
+};
+$wp_filter = array(
+    'mu_plugin_loaded'      => $odr_crumb('mu-plugin loaded:'),
+    'muplugins_loaded'      => $odr_crumb('[all mu-plugins loaded]'),
+    'network_plugin_loaded' => $odr_crumb('network plugin loaded:'),
+    'plugin_loaded'         => $odr_crumb('plugin loaded:'),
+    'plugins_loaded'        => $odr_crumb('[all plugins loaded]'),
+    'setup_theme'           => $odr_crumb('[loading theme]'),
+    'after_setup_theme'     => $odr_crumb('[theme loaded]'),
+    'init'                  => $odr_crumb('[init]'),
+    'wp_loaded'             => $odr_crumb('[wp_loaded]'),
+);
+
 $odr_loaded = false;
 register_shutdown_function(function () use (&$odr_loaded, $odr_host) {
     if ($odr_loaded)
@@ -57,6 +81,22 @@ register_shutdown_function(function () use (&$odr_loaded, $odr_host) {
         fwrite(STDERR, "  or a plugin that expects a web request.\n");
         if ($odr_host === '')
             fwrite(STDERR, "  Try again with the site's host name as the third argument, e.g. rruff.net\n");
+    }
+
+    // how far it got: the culprit is whatever loads right after the last line here
+    $trace = $GLOBALS['odr_trace'] ?? array();
+    fwrite(STDERR, "\n  How far loading got:\n");
+    fwrite(STDERR, sprintf("    wp-config.php read      : %s\n", defined('DB_NAME') ? 'yes' : 'NO  <-- it stopped in wp-config.php itself'));
+    fwrite(STDERR, sprintf("    wp-settings.php started : %s\n", defined('WPINC') ? 'yes' : 'no'));
+    if (defined('WPINC') && $trace === array()) {
+        fwrite(STDERR, "    no plugin had loaded yet -- look at the drop-ins in wp-content (advanced-cache.php,\n");
+        fwrite(STDERR, "    db.php, object-cache.php, sunrise.php) and at the first mu-plugin\n");
+    }
+    foreach ($trace as $line)
+        fwrite(STDERR, "    $line\n");
+    if ($trace !== array() && strpos(end($trace), 'plugin loaded:') !== false) {
+        fwrite(STDERR, "    <-- stopped while loading the NEXT plugin after this one.  List them in load order\n");
+        fwrite(STDERR, "        with:  wp plugin list --status=active  (or check active_plugins in wp_options)\n");
     }
 });
 
