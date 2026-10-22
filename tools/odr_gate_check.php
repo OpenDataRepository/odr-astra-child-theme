@@ -56,6 +56,60 @@ $odr_crumb = function ($label) {
         'accepted_args' => 1,
     )));
 };
+// Names a hook callback the way a person would look for it: Class::method or function, plus file
+$odr_describe = function ($cb) {
+    try {
+        if (is_array($cb) && count($cb) === 2) {
+            $class = is_object($cb[0]) ? get_class($cb[0]) : (string) $cb[0];
+            $r = new ReflectionMethod($class, (string) $cb[1]);
+            $name = $class . '::' . $cb[1];
+        } elseif (is_string($cb) && strpos($cb, '::') !== false) {
+            $r = new ReflectionMethod($cb);
+            $name = $cb;
+        } elseif ($cb instanceof Closure || is_string($cb)) {
+            $r = new ReflectionFunction($cb);
+            $name = ($cb instanceof Closure) ? 'closure' : $cb;
+        } elseif (is_object($cb)) {
+            $r = new ReflectionMethod($cb, '__invoke');
+            $name = get_class($cb) . '::__invoke';
+        } else {
+            return 'unrecognised callback';
+        }
+        $file = $r->getFileName();
+        return $name . ($file ? '  (' . $file . ':' . $r->getStartLine() . ')' : '');
+    } catch (Throwable $e) {
+        return 'unrecognised callback';
+    }
+};
+// Runs first on a hook and wraps every other callback on it, so an exit() inside one of them
+// leaves its name behind.  Only the hooks the trace showed being reached need this.
+$odr_watch = function ($hook) use ($odr_describe) {
+    return array(PHP_INT_MIN => array(array(
+        'function' => function ($arg = null) use ($hook, $odr_describe) {
+            $wp_hook = $GLOBALS['wp_filter'][$hook] ?? null;
+            if (!($wp_hook instanceof WP_Hook))
+                return $arg;
+            foreach ($wp_hook->callbacks as $priority => $list) {
+                if ($priority === PHP_INT_MIN)
+                    continue;
+                foreach ($list as $id => $entry) {
+                    $orig = $entry['function'];
+                    $label = $hook . ' priority ' . $priority . ': ' . $odr_describe($orig);
+                    $wp_hook->callbacks[$priority][$id]['function'] = function (...$args) use ($orig, $label) {
+                        $GLOBALS['odr_running'] = $label;
+                        $result = call_user_func_array($orig, $args);
+                        $GLOBALS['odr_running'] = null;
+                        return $result;
+                    };
+                }
+            }
+            return $arg;
+        },
+        'accepted_args' => 1,
+    )));
+};
+$odr_running = null;
+
 $wp_filter = array(
     'mu_plugin_loaded'      => $odr_crumb('mu-plugin loaded:'),
     'muplugins_loaded'      => $odr_crumb('[all mu-plugins loaded]'),
@@ -64,8 +118,8 @@ $wp_filter = array(
     'plugins_loaded'        => $odr_crumb('[all plugins loaded]'),
     'setup_theme'           => $odr_crumb('[loading theme]'),
     'after_setup_theme'     => $odr_crumb('[theme loaded]'),
-    'init'                  => $odr_crumb('[init]'),
-    'wp_loaded'             => $odr_crumb('[wp_loaded]'),
+    'init'                  => $odr_crumb('[init]') + $odr_watch('init'),
+    'wp_loaded'             => $odr_crumb('[wp_loaded]') + $odr_watch('wp_loaded'),
 );
 
 $odr_loaded = false;
@@ -94,6 +148,10 @@ register_shutdown_function(function () use (&$odr_loaded, $odr_host) {
     }
     foreach ($trace as $line)
         fwrite(STDERR, "    $line\n");
+    if (!empty($GLOBALS['odr_running'])) {
+        fwrite(STDERR, "\n  It exited inside this callback:\n");
+        fwrite(STDERR, "    " . $GLOBALS['odr_running'] . "\n");
+    }
     if ($trace !== array() && strpos(end($trace), 'plugin loaded:') !== false) {
         fwrite(STDERR, "    <-- stopped while loading the NEXT plugin after this one.  List them in load order\n");
         fwrite(STDERR, "        with:  wp plugin list --status=active  (or check active_plugins in wp_options)\n");
