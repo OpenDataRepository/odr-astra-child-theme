@@ -452,7 +452,8 @@ function odr_sg_uri_has_query() {
  *
  * Values: logged-in, allowlist, allowlist-cached, crawler, passed-earlier, solved, challenge,
  * challenge-stale-form, challenge-google-unreachable, banned, failed-now-banned,
- * no-recaptcha-keys.
+ * no-recaptcha-keys.  odr_send_minimal_404() in functions.php adds minimal_404 for a 404 it
+ * sends without one of these already set (a url that isn't a valid search at all).
  *
  * @param string $outcome
  */

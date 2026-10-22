@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.17' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.18' );
 
 /**
  * Enqueue styles
@@ -80,6 +80,19 @@ add_action( 'pre_handle_404', 'odr_rruff_404_prehandler');
  */
 function odr_send_minimal_404() {
     if ( ! headers_sent() ) {
+        // Tag it for the access log (gate=%{X-ODR-Gate}o), unless the search gate already
+        // recorded why -- 'banned' and 'failed-now-banned' also end up here
+        $already_tagged = false;
+        foreach ( headers_list() as $sent_header ) {
+            if ( stripos( $sent_header, 'X-ODR-Gate:' ) === 0 )
+                $already_tagged = true;
+        }
+        if ( ! $already_tagged ) {
+            header( 'X-ODR-Gate: minimal_404' );
+            if ( function_exists( 'apache_note' ) )
+                apache_note( 'odr_gate', 'minimal_404' );
+        }
+
         status_header( 404 );
         nocache_headers();
         header( 'Content-Type: text/html; charset=utf-8' );
