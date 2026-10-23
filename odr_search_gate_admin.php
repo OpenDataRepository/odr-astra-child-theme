@@ -110,14 +110,12 @@ function odr_sg_settings_page() {
         <p>
             Controls the shortcut search routes &mdash; <code>/&lt;mineral&gt;</code>,
             <code>/ima/&lt;mineral&gt;</code> and <code>/amcsd/&lt;mineral&gt;</code>.
+            Every search by a visitor who isn&rsquo;t logged in asks them to pass a reCAPTCHA
+            first, and one who fails is refused for a while. Only logged-in users and &mdash; if
+            enabled below &mdash; verified search crawlers skip it.
             <?php if ( $uses_lists ) : ?>
-                Terms on the allowed lists search immediately; anything else asks an anonymous
-                visitor to pass a reCAPTCHA first, and a visitor who fails is refused for a while.
-            <?php else : ?>
-                An anonymous visitor is asked to pass a reCAPTCHA, and one who fails is refused for
-                a while. This site has no mineral name lists, so nothing is allowed through
-                un-challenged except logged-in users and &mdash; if enabled below &mdash; verified
-                search crawlers.
+                The mineral name lists don&rsquo;t let anyone skip it; they decide which field a
+                search uses, and send <code>/ima/</code> visitors to a mineral&rsquo;s cached page.
             <?php endif; ?>
         </p>
 
@@ -138,7 +136,7 @@ function odr_sg_settings_page() {
                 <td>
                     <?php
                     if ( empty( $index['built'] ) )
-                        echo '<span style="color:#b32d2e">never &mdash; every anonymous search is being challenged</span>';
+                        echo '<span style="color:#b32d2e">never &mdash; mineral names aren&rsquo;t recognised</span>';
                     else
                         echo esc_html( gmdate( 'Y-m-d H:i', (int)$index['built'] ) . ' UTC' );
                     ?>
@@ -200,11 +198,14 @@ function odr_sg_settings_page() {
                             <input type="checkbox"
                                    name="<?php echo ODR_SG_OPTION; ?>[use_name_lists]"
                                    value="1" <?php checked( $uses_lists ); ?>>
-                            This site has lists of search terms that skip the challenge
+                            This site has mineral name lists
                         </label>
                         <p class="description">
-                            Only the mineral sites have these. With this off, the gate is just
-                            logged-in users, verified crawlers and reCAPTCHA &mdash; no index is
+                            Only the mineral sites have these. They no longer let anyone skip the
+                            challenge: a visitor who clears it searching <code>/&lt;name&gt;</code>
+                            gets the Mineral Name field for a known name and the general field
+                            otherwise, and one on <code>/ima/&lt;name&gt;</code> is sent to the
+                            mineral&rsquo;s cached page when there is one. With this off, no index is
                             built, no files are read, and the settings for them are hidden.
                             Save the page after changing this to see the rest.
                         </p>
@@ -420,8 +421,8 @@ function odr_sg_admin_notices() {
 
     if ( ! odr_sg_recaptcha_ready() ) {
         echo '<div class="notice notice-warning"><p>'
-           . 'reCAPTCHA keys are not set, so any anonymous search that isn\'t on an allowed list '
-           . 'gets a 404 rather than a chance to prove itself.'
+           . 'reCAPTCHA keys are not set, so every search by a visitor who isn\'t logged in gets a '
+           . '404 rather than a chance to prove itself.'
            . '</p></div>';
     }
 
@@ -431,8 +432,10 @@ function odr_sg_admin_notices() {
     $index = odr_sg_index();
     if ( empty( $index['built'] ) ) {
         echo '<div class="notice notice-warning"><p>'
-           . 'The allowlist index has never been built, so <em>every</em> anonymous search is being '
-           . 'challenged. Set the ODR web directory below and use &ldquo;Rebuild index now&rdquo;.'
+           . 'The mineral name index has never been built, so mineral names aren\'t recognised: '
+           . '<code>/&lt;name&gt;</code> searches use the general field, and <code>/ima/</code> never '
+           . 'sends anyone to a cached page. Set the ODR web directory below and use '
+           . '&ldquo;Rebuild index now&rdquo;.'
            . '</p></div>';
     }
 }

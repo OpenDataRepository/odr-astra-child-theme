@@ -11,16 +11,17 @@
  * This reopens them, in this order:
  *
  *   1. Logged in                     -> search runs, as before.
- *   2. Term is on an allowed list    -> search runs.  Mineral names come from ODR's generated
- *                                       name files; RRUFF ids are matched by pattern.  Where the
- *                                       list gives a record uuid and that record has a cached
- *                                       static page, the visitor is sent straight to it.
- *                                       The url must be the name or id and nothing else: any
- *                                       query string skips this step.
- *   3. Verified search crawler       -> search runs, but only when that toggle is on.
- *   4. Already failed a challenge    -> minimal 404 for the ban duration, no challenge shown.
+ *   2. Verified search crawler       -> search runs, but only when that toggle is on (Google,
+ *                                       Bing, DuckDuckGo, by published address).
+ *   3. Already failed a challenge    -> minimal 404 for the ban duration, no challenge shown.
+ *   4. Already passed one            -> search runs, for the same window.
  *   5. Anything else                 -> reCAPTCHA.  Pass and the search runs (and keeps running
  *                                       for the same window); fail and the client is banned.
+ *
+ * Nothing else skips the challenge -- a known mineral name or RRUFF id included.  The name lists
+ * used to let those straight through, and bots worked their way through them.  The lists now
+ * only decide where a visitor who clears the gate goes: on /ima/<name>, a mineral with a cached
+ * static page is sent to that page instead of a search.
  *
  * Step 4 exists to stay inside reCAPTCHA's free tier: once a client fails, it costs nothing to
  * refuse them for a while.  A ban only closes these search routes -- the rest of the site, static
@@ -450,9 +451,9 @@ function odr_sg_uri_has_query() {
  * Sent as an X-ODR-Gate response header, which apache can log with %{X-ODR-Gate}o under both
  * mod_php and PHP-FPM.  Under mod_php it's also an apache note, for %{odr_gate}n.
  *
- * Values: logged-in, allowlist, allowlist-cached, crawler, passed-earlier, solved, challenge,
- * challenge-stale-form, challenge-google-unreachable, banned, failed-now-banned,
- * no-recaptcha-keys.  odr_send_minimal_404() in functions.php adds minimal_404 for a 404 it
+ * Values: logged-in, crawler, passed-earlier, solved, challenge, challenge-stale-form,
+ * challenge-google-unreachable, banned, failed-now-banned, no-recaptcha-keys.  (allowlist and
+ * allowlist-cached are gone: the name lists no longer let anyone skip the challenge.)  odr_send_minimal_404() in functions.php adds minimal_404 for a 404 it
  * sends without one of these already set (a url that isn't a valid search at all).
  *
  * @param string $outcome
@@ -462,6 +463,27 @@ function odr_sg_log_outcome( $outcome ) {
         header( 'X-ODR-Gate: ' . $outcome );
     if ( function_exists( 'apache_note' ) )
         apache_note( 'odr_gate', $outcome );
+}
+
+/**
+ * A visitor has cleared the gate.  Logs how, and sends them to a cached static page instead of a
+ * search when there is one for this term (only ever set on /ima/); otherwise returns, and the
+ * caller runs its search.
+ *
+ * @param string $outcome 'crawler', 'passed-earlier' or 'solved'
+ * @param string|null $cached_uuid Record uuid from the name list, or null
+ */
+function odr_sg_cleared( $outcome, $cached_uuid ) {
+    odr_sg_log_outcome( $outcome );
+
+    if ( $cached_uuid === null )
+        return;
+    $cached = odr_sg_cached_page_url( $cached_uuid );
+    if ( $cached !== null ) {
+        // a logged-in visitor gets bounced on to the live record by the cached page itself
+        wp_redirect( $cached, 302 );
+        exit;
+    }
 }
 
 
@@ -697,8 +719,8 @@ function odr_sg_render_challenge( $uri, $term ) {
        . ( $has_term
             ? 'Searching for <span class="q">' . $shown . '</span> needs a quick check first. '
             : 'This page runs a database lookup, so it needs a quick check first. ' )
-       . 'Automated traffic has been running large numbers of searches, so lookups that aren\'t '
-       . 'for a known mineral name or RRUFF ID are confirmed this way.</p>'
+       . 'Automated traffic has been running large numbers of searches, so searches by visitors '
+       . 'who aren\'t logged in are confirmed this way. You\'ll only be asked once in a while.</p>'
        . '<form method="post" action="' . $action . '">'
        . '<input type="hidden" name="odr_sg_recaptcha" value="1">'
        . '<input type="hidden" name="odr_sg_nonce" value="' . $nonce . '">'
@@ -732,67 +754,21 @@ function odr_search_gate( $route, $term ) {
         return;
     }
 
-    // 2. on an allowed list?  Only sites with the mineral name lists have anything to check,
-    //    and when that's off nothing here touches the index or the filesystem.
-    $uuid = null;
-    $allowed = false;
-
-    if ( $route === 'none' || ! odr_sg_setting( 'use_name_lists' ) ) {
-        // Nothing to match against, so fall through to the crawler / ban / challenge steps.
-        // 'none' is for urls whose payload is a query string rather than a search term: there is
-        // no name to check against a list, and checking the last path segment ("locality.php")
-        // would be meaningless at best and a false match at worst.
-    }
-    else if ( odr_sg_uri_has_query() || $term !== trim( (string)$term ) ) {
-        // The list only vouches for the bare name or id.  Bots were sending an allowed name with
-        // a payload of their own behind it (/Bustamite?sample_child_id=...&sample_id=...), so
-        // anything more than exactly the name -- a query string, even an empty one, or
-        // surrounding whitespace -- takes the challenge like any other unlisted search.
-    }
-    else if ( $route === 'amcsd' ) {
-        $uuid = odr_sg_lookup( 'amcsd', $term );
-        $allowed = ( $uuid !== null );
-        // NOTE: the uuid on this list is an IMA mineral record, not an AMCSD one, so it is used
-        //  only to decide the term is allowed...the caller still runs its AMCSD search
-        $uuid = null;
-    }
-    else {
-        $uuid = odr_sg_lookup( 'minerals', $term );
-        $allowed = ( $uuid !== null );
-
-        if ( ! $allowed && $route === 'root' && odr_sg_is_rruff_id( $term ) ) {
-            // no uuid to redirect to for a RRUFF id, but the search itself is fine
-            $allowed = true;
-        }
-
-        // The root route is a RRUFF sample search, and the uuids on this list are IMA mineral
-        //  records -- a cached IMA page is the wrong destination there.  Only /ima/ uses them.
-        if ( $route === 'root' )
-            $uuid = null;
-    }
-
-    if ( $allowed ) {
-        // send them to the cached page when one exists, which costs the server a static file
-        // instead of a search
-        if ( $uuid !== null ) {
-            $cached = odr_sg_cached_page_url( $uuid );
-            if ( $cached !== null ) {
-                // a logged-in visitor gets bounced on to the live record by the cached page
-                // itself, so this is safe for everyone
-                odr_sg_log_outcome( 'allowlist-cached' );
-                wp_redirect( $cached, 302 );
-                exit;
-            }
-        }
-
-        odr_sg_log_outcome( 'allowlist' );
-        return;
+    // 2. Nothing else skips the challenge any more -- not even a known mineral name or RRUFF id.
+    //    Bots were working through the allowlist.  The lists now only decide where a visitor who
+    //    clears the gate is sent: on /ima/, a mineral with a cached static page goes to that page,
+    //    which costs a static file instead of a search.  (The root route's uuids are IMA records,
+    //    the wrong destination for a RRUFF sample search, and AMCSD's are too.)
+    $cached_uuid = null;
+    if ( $route === 'ima' && odr_sg_setting( 'use_name_lists' )
+        && ! odr_sg_uri_has_query() && $term === trim( (string)$term ) ) {
+        $cached_uuid = odr_sg_lookup( 'minerals', $term );
     }
 
     // 3. a verified crawler, if we're letting them through
     if ( odr_sg_setting( 'allow_verified_crawlers' ) && function_exists( 'odr_identify_verified_crawler' ) ) {
         if ( odr_identify_verified_crawler() !== null ) {
-            odr_sg_log_outcome( 'crawler' );
+            odr_sg_cleared( 'crawler', $cached_uuid );
             return;
         }
     }
@@ -804,14 +780,14 @@ function odr_search_gate( $route, $term ) {
     }
 
     if ( odr_sg_has_passed() ) {
-        odr_sg_log_outcome( 'passed-earlier' );
+        odr_sg_cleared( 'passed-earlier', $cached_uuid );
         return;
     }
 
     // 5. the challenge
     if ( ! odr_sg_recaptcha_ready() ) {
         // nothing to challenge with, so behave as the route did before this existed
-        error_log( 'odr_search_gate: reCAPTCHA is not configured, refusing an unlisted search' );
+        error_log( 'odr_search_gate: reCAPTCHA is not configured, refusing an anonymous search' );
         odr_sg_log_outcome( 'no-recaptcha-keys' );
         odr_send_minimal_404();
     }
@@ -831,7 +807,7 @@ function odr_search_gate( $route, $term ) {
 
         if ( $verdict === true ) {
             odr_sg_mark_passed();
-            odr_sg_log_outcome( 'solved' );
+            odr_sg_cleared( 'solved', $cached_uuid );
             return;
         }
 

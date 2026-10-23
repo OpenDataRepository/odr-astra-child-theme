@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.18' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.19' );
 
 /**
  * Enqueue styles
@@ -366,8 +366,8 @@ function odr_rruff_404_prehandler () {
         // Old RRUFF search links, /constructor.php?...&txt_mineral=<name>&... in any order.  Other
         // sites still link to these, sometimes with junk glued on, e.g.
         //   txt_mineral=Potassic-ferro-ferri-taramite$https://www.mineralienatlas.de/wiki/...
-        // Only valid at the very start of the url.  With a mineral name it's gated like any
-        // unlisted search -- logged-in users and verified crawlers straight through, everyone else
+        // Only valid at the very start of the url.  With a mineral name it's gated like any other
+        // search -- logged-in users and verified crawlers straight through, everyone else
         // challenged -- and then moved permanently to /<name>, where the root route searches it.
         // No usable name is a 404.
         case (bool)preg_match('#^/constructor\.php(\?|$)#i', $current_uri):
@@ -822,8 +822,9 @@ function odr_rruff_404_prehandler () {
 
                 odr_search_gate( 'root', $root_term );
 
-                // Past the gate: an allowlisted term, a logged-in user, or someone who passed the
-                // challenge.  Always a RRUFF sample search -- never a cached page.
+                // Past the gate: a logged-in user, a verified crawler, or someone who passed the
+                // challenge.  Always a RRUFF sample search -- never a cached page.  The name list
+                // only picks the field: a known name gets the Mineral Name field.
                 // PROD {"dt_id":"738","sort_by":[{"sort_df_id":"7052","sort_dir":"asc"}],"7052":"actinolite"}
                 $search_params = [];
                 $search_params['dt_id'] = 738;
