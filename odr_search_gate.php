@@ -446,13 +446,52 @@ function odr_sg_uri_has_query() {
 }
 
 /**
+ * How the Apache gate let this request through, or null when it isn't installed.
+ *
+ * The Apache gate (odr-gate.conf, in ODR's docs/server/bot-bans) shows the reCAPTCHA to every
+ * visitor before WordPress starts, and passes its decision on as an environment variable:
+ * 'passed' (solved it recently), 'crawler' (approved, by published address), 'trusted' (this
+ * server or localhost) or 'api'.  Apache sets it, not the visitor -- a request header can't
+ * produce a variable by this name.  WordPress's internal re-dispatch of a pretty url renames it
+ * REDIRECT_odr_gate_via, hence both.
+ *
+ * @return string|null
+ */
+function odr_sg_apache_via() {
+    foreach ( array( 'odr_gate_via', 'REDIRECT_odr_gate_via' ) as $key ) {
+        if ( ! empty( $_SERVER[ $key ] ) )
+            return (string)$_SERVER[ $key ];
+    }
+    return null;
+}
+
+/**
+ * Whether this request comes from an approved search crawler (Google, Bing, DuckDuckGo): as the
+ * Apache gate saw it, or failing that by this site's own crawler list.  Used to log a crawler's
+ * refusals as approved_404, which fail2ban doesn't ban for.
+ *
+ * @return bool
+ */
+function odr_sg_is_approved_crawler() {
+    foreach ( array( 'odr_crawler', 'REDIRECT_odr_crawler' ) as $key ) {
+        if ( isset( $_SERVER[ $key ] ) && (string)$_SERVER[ $key ] === '1' )
+            return true;
+    }
+    // only when a crawler list is configured, so an unconfigured site doesn't log an error per 404
+    if ( (string)odr_sg_setting( 'crawler_ip_file' ) !== '' && function_exists( 'odr_identify_verified_crawler' ) )
+        return odr_identify_verified_crawler() !== null;
+    return false;
+}
+
+/**
  * Records what the gate decided, where the apache access log can pick it up.
  *
  * Sent as an X-ODR-Gate response header, which apache can log with %{X-ODR-Gate}o under both
  * mod_php and PHP-FPM.  Under mod_php it's also an apache note, for %{odr_gate}n.
  *
  * Values: logged-in, crawler, passed-earlier, solved, challenge, challenge-stale-form,
- * challenge-google-unreachable, banned, failed-now-banned, no-recaptcha-keys.  (allowlist and
+ * challenge-google-unreachable, banned, failed-now-banned, no-recaptcha-keys, and -- when the
+ * Apache gate cleared the request -- passed / crawler / trusted.  (allowlist and
  * allowlist-cached are gone: the name lists no longer let anyone skip the challenge.)  odr_send_minimal_404() in functions.php adds minimal_404 for a 404 it
  * sends without one of these already set (a url that isn't a valid search at all).
  *
@@ -763,6 +802,15 @@ function odr_search_gate( $route, $term ) {
     if ( $route === 'ima' && odr_sg_setting( 'use_name_lists' )
         && ! odr_sg_uri_has_query() && $term === trim( (string)$term ) ) {
         $cached_uuid = odr_sg_lookup( 'minerals', $term );
+    }
+
+    // Already cleared by the Apache gate: it showed this visitor the reCAPTCHA (or recognised the
+    //  crawler / this server) before WordPress started.  Challenging again would be a second
+    //  reCAPTCHA for the same person.
+    $apache_via = odr_sg_apache_via();
+    if ( in_array( $apache_via, array( 'passed', 'crawler', 'trusted' ), true ) ) {
+        odr_sg_cleared( $apache_via, $cached_uuid );
+        return;
     }
 
     // 3. a verified crawler, if we're letting them through

@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.19' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.20' );
 
 /**
  * Enqueue styles
@@ -88,9 +88,13 @@ function odr_send_minimal_404() {
                 $already_tagged = true;
         }
         if ( ! $already_tagged ) {
-            header( 'X-ODR-Gate: minimal_404' );
+            // An approved crawler (Google...) still gets the 404, but logged approved_404, which
+            //  fail2ban doesn't ban for
+            $tag = ( function_exists( 'odr_sg_is_approved_crawler' ) && odr_sg_is_approved_crawler() )
+                ? 'approved_404' : 'minimal_404';
+            header( 'X-ODR-Gate: ' . $tag );
             if ( function_exists( 'apache_note' ) )
-                apache_note( 'odr_gate', 'minimal_404' );
+                apache_note( 'odr_gate', $tag );
         }
 
         status_header( 404 );
