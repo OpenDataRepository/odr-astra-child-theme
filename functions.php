@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.20' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.21' );
 
 /**
  * Enqueue styles
@@ -143,7 +143,7 @@ function odr_require_login_for_search( $allow_crawlers = false ) {
  * Returns 'google', 'bing', or 'duckduckgo' when the request comes from an IP
  * address that search engine publishes for its crawlers, and null otherwise.
  *
- * The ranges live in ODR's own var/crawler_ips.php, generated there by
+ * The ranges live in ODR's own var/crawler_ips.json, generated there by
  * `php app/console odr:crawler_ips:update`, and read from the path set under
  * Settings -> ODR Search Gate -> Crawler IP file.  Nothing is downloaded while
  * serving a request, and nothing is copied into WordPress.
@@ -165,7 +165,7 @@ function odr_identify_verified_crawler( $ip = null ) {
         return null;
 
     // inet_pton() gives 4 packed bytes for IPv4 and 16 for IPv6, which is the
-    //  form crawler_ips.php stores its prefixes in
+    //  form crawler_ips.json stores its prefixes in
     $packed = @inet_pton( $ip );
     if ( $packed === false )
         return null;
@@ -237,12 +237,16 @@ function odr_crawler_ip_data() {
  * Reads one crawler range file, saying plainly what's wrong with it if it can't be used.  Shared
  * by the gate, its settings page, and tools/odr_gate_check.php.
  *
- * @param string $file Absolute path, normally <ODR install>/var/crawler_ips.php
+ * @param string $file Absolute path, normally <ODR install>/var/crawler_ips.json
  *
  * @return array 'data' => the ranges or null, 'error' => why not, or null
  */
 function odr_crawler_ip_load( $file ) {
     $file = (string)$file;
+    // ODR writes json now.  A setting that still names the old crawler_ips.php is pointed at the
+    //  crawler_ips.json beside it -- nothing executable is ever included.
+    if ( substr( $file, -4 ) === '.php' )
+        $file = substr( $file, 0, -4 ) . '.json';
     if ( $file === '' )
         return array( 'data' => null, 'error' => 'no crawler IP file is set (Settings -> ODR Search Gate)' );
     if ( ! file_exists( $file ) )
@@ -250,7 +254,7 @@ function odr_crawler_ip_load( $file ) {
     if ( ! is_readable( $file ) )
         return array( 'data' => null, 'error' => 'the web server can\'t read the crawler IP file at ' . $file );
 
-    $loaded = include $file;
+    $loaded = json_decode( (string)file_get_contents( $file ), true );
     if ( ! is_array( $loaded ) || ! isset( $loaded['ipv4'] ) || ! isset( $loaded['ipv6'] ) )
         return array( 'data' => null, 'error' => 'the crawler IP file at ' . $file . ' is malformed' );
 

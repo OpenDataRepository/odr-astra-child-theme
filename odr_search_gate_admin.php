@@ -257,9 +257,9 @@ function odr_sg_settings_page() {
                     <td>
                         <?php
                         // suggest the file next to the ODR install this site already points at
-                        $suggested = '/path/to/data-publisher/var/crawler_ips.php';
+                        $suggested = '/path/to/data-publisher/var/crawler_ips.json';
                         if ( $settings['odr_web_dir'] !== '' )
-                            $suggested = dirname( $settings['odr_web_dir'] ) . '/var/crawler_ips.php';
+                            $suggested = dirname( $settings['odr_web_dir'] ) . '/var/crawler_ips.json';
                         ?>
                         <input type="text" class="large-text code" id="odr_sg_crawler_ip_file"
                                name="<?php echo ODR_SG_OPTION; ?>[crawler_ip_file]"

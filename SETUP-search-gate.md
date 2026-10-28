@@ -21,7 +21,7 @@ just logged-in users, verified crawlers if you enable them, and reCAPTCHA for ev
 | reCAPTCHA site key | From [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin). Must be **reCAPTCHA v2, "I'm not a robot" checkbox** — v3 keys will not work with this form. |
 | reCAPTCHA secret key | The other half of that pair. |
 | Verified crawlers | Leave off unless you want verified Google/Bing/DuckDuckGo crawlers to run searches that aren't on a list. |
-| Crawler IP file | ODR's own `<ODR>/var/crawler_ips.php`, e.g. `/home/rruff/data-publisher/var/crawler_ips.php`. Read in place, never copied into WordPress. The page shows how many ranges it found and when they were generated. See *Crawler ranges* below. |
+| Crawler IP file | ODR's own `<ODR>/var/crawler_ips.json`, e.g. `/home/rruff/data-publisher/var/crawler_ips.json`. Read in place, never copied into WordPress. The page shows how many ranges it found and when they were generated. See *Crawler ranges* below. |
 | Ban length | `7200` (two hours). Also how long a visitor who passes is trusted, so they aren't re-challenged on every search. |
 | ODR web directory | Absolute path of ODR's `web/` directory, e.g. `/home/rruff/data-publisher/web`. The page tells you whether it can see `uploads/IMA` and `uploads/static` underneath it. |
 | ODR url path | Where ODR is served on this site, e.g. `/odr_rruff`. Used to build cached-page links. |
