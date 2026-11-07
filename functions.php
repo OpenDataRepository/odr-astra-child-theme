@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Define Constants
  */
-define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.21' );
+define( 'CHILD_THEME_ODR_ASTRA_CHILD_THEME_VERSION', '1.2.22' );
 
 /**
  * Enqueue styles
@@ -671,8 +671,8 @@ function odr_rruff_404_prehandler () {
 
 
 
-	        // /doclib/MinMag/Volume_54/54-374-129.htm
-            case (bool)preg_match('/^\/doclib\/MinMag/i', $current_uri):
+	        // Retired document library sections.  (MinMag is live again -- /doclib/MinMag/... is
+	        //  left to Apache and, for a missing file, WordPress's own 404; see the exceptions below.)
             case (bool)preg_match('/^\/doclib\/mj/i', $current_uri):
             case (bool)preg_match('/^\/doclib\/jmps/i', $current_uri):
             case (bool)preg_match('/^\/doclib\/mm/i', $current_uri):
@@ -797,6 +797,7 @@ function odr_rruff_404_prehandler () {
                 && !preg_match('/^\/odr\//', $current_uri)
                 && !preg_match('/^\/wp-admin\//i', $current_uri)
                 && !preg_match('/^\/doclib\/hom\//i', $current_uri)
+                && !preg_match('/^\/doclib\/MinMag(\/|$)/i', $current_uri)
                 && !preg_match('/^\/ima$/i', $current_uri)
                 && !preg_match('/^\/ima\/$/i', $current_uri)
 
